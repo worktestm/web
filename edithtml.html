@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <!-- 響應式設計的關鍵：確保網頁寬度與設備寬度一致 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>離線 HTML 編輯器 (已移除 CDN)</title>
+    <title>離線 HTML 編輯器 (App 模式)</title>
+    
+    <!-- PWA/Web App 模式設定 (讓網頁可新增至主畫面並以App模式運行) -->
+    <meta name="theme-color" content="#3b82f6"> <!-- Android Chrome 狀態列顏色 -->
+    <meta name="apple-mobile-web-app-capable" content="yes"> <!-- iOS 啟用全螢幕模式 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <!-- iOS 狀態列樣式 -->
+    <meta name="apple-mobile-web-app-title" content="離線編輯器"> <!-- iOS 桌面名稱 -->
     
     <!-- 所有的樣式皆已內嵌，確保 100% 離線可用性 -->
     <style>
@@ -160,11 +166,18 @@
             // 使用 setTimeout 確保下載操作在單獨的執行緒中運行，
             // 這有助於規避部分移動瀏覽器對本地文件執行下載操作的安全限制。
             setTimeout(() => {
-                a.click();
+                // 檢查是否為開啟本地檔案（file://）
+                if (window.location.protocol === 'file:') {
+                    showMessageBox('在 App 模式下，請檢查下載目錄是否有檔案。部分瀏覽器於離線模式下可能限制此功能。', 'text-red-500');
+                    // 為了最大化成功率，即使顯示警告，仍嘗試點擊
+                    try { a.click(); } catch (e) { console.error("Download failed:", e); }
+                } else {
+                    a.click();
+                    showMessageBox('成功儲存！檔案已下載至您的手機。', 'text-green-500');
+                }
                 
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showMessageBox('成功儲存！檔案已下載至您的手機。', 'text-green-500');
             }, 0);
         }
         
