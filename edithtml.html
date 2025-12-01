@@ -156,12 +156,16 @@
             a.download = filename; 
             
             document.body.appendChild(a);
-            a.click();
-            
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
 
-            showMessageBox('成功儲存！檔案已下載至您的手機。', 'text-green-500');
+            // 使用 setTimeout 確保下載操作在單獨的執行緒中運行，
+            // 這有助於規避部分移動瀏覽器對本地文件執行下載操作的安全限制。
+            setTimeout(() => {
+                a.click();
+                
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showMessageBox('成功儲存！檔案已下載至您的手機。', 'text-green-500');
+            }, 0);
         }
         
         /**
