@@ -3,21 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>廣島五天四夜 (離線版)</title>
+    <title>廣島五天四夜 (離線可編輯版)</title>
     
-    <!-- 
-        *** 離線使用重要提示 ***
-        
-        此應用程式的所有資料 (itineraryData) 與核心邏輯皆已內嵌在 <script> 標籤中，
-        無需網路連線即可瀏覽行程、切換日期、開啟 Modal 等。
-
-        唯一的外部依賴是 Tailwind CSS 框架：
-        <script src="https://cdn.tailwindcss.com"></script>
-        
-        如果想實現 100% 離線功能 (包括初次載入樣式)，
-        建議在首次開啟時確保網路連線，讓瀏覽器快取此 CDN 檔案。
-        或者，將所有 Tailwind 樣式編譯後貼入下方的 <style> 區塊，即可徹底離線。
-    -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
@@ -30,14 +18,9 @@
             padding-bottom: 90px;
         }
 
-        /* 隱藏 Scrollbar 但保持滑動功能 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        /* Scrollbar 隱藏 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* 扁平化卡片樣式 */
         .flat-card {
@@ -45,103 +28,77 @@
             background-color: #fff;
             border-radius: 12px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s;
         }
+        
+        /* 編輯提示 (長按效果) */
+        .editable-card:hover {
+             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+        }
+        .editable-card:active {
+             box-shadow: 0 2px 5px rgba(37, 99, 235, 0.4);
+             transform: scale(0.99);
+        }
+        .editable-card::after {
+            content: '長按/右鍵編輯';
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: #bfdbfe;
+            color: #1e40af;
+            padding: 2px 6px;
+            border-bottom-left-radius: 8px;
+            border-top-right-radius: 12px;
+            font-size: 0.6rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .editable-card:hover::after {
+            opacity: 1;
+        }
+
 
         /* 時間軸線條 */
         .timeline-line {
-            position: absolute;
-            left: 5px; 
-            top: 24px; 
-            bottom: -24px;
-            width: 2px;
-            background-color: #e5e7eb;
-            z-index: 0;
+            position: absolute; left: 5px; top: 24px; bottom: -24px;
+            width: 2px; background-color: #e5e7eb; z-index: 0;
         }
-        .timeline-item:last-child .timeline-line {
-            display: none;
-        }
-
-        /* 底部導航按鈕樣式 */
-        .nav-btn {
-            color: #9ca3af;
-            transition: all 0.2s;
-        }
-        .nav-btn.active {
-            color: #2563eb;
-        }
-        .nav-btn.active .nav-icon {
-            fill: currentColor;
-            transform: scale(1.1);
-        }
-
-        /* Day 按鈕樣式 */
-        .day-tab-btn {
-            transition: all 0.2s ease;
-        }
-        .day-tab-btn.active {
-            background-color: #dbeafe;
-            color: #1e40af;
-            font-weight: 700;
-            border: 1px solid #bfdbfe;
-        }
-        .day-tab-btn.inactive {
-            background-color: #ffffff;
-            color: #6b7280;
-            border: 1px solid #f3f4f6;
-        }
+        .timeline-item:last-child .timeline-line { display: none; }
 
         /* Modal 樣式 (Slide-Up) */
         .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding: 0;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); z-index: 1000;
+            display: flex; align-items: flex-end; justify-content: center; padding: 0;
         }
 
         .modal-content {
-            background-color: #ffffff;
-            width: 100%;
-            max-width: 500px;
-            max-height: 90vh;
-            border-top-left-radius: 16px;
-            border-top-right-radius: 16px;
-            overflow-y: auto;
-            padding: 24px;
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
-            position: relative;
-            transform: translateY(100%);
-            transition: transform 0.3s ease-out;
+            background-color: #ffffff; width: 100%; max-width: 500px; max-height: 90vh;
+            border-top-left-radius: 16px; border-top-right-radius: 16px; overflow-y: auto;
+            padding: 24px; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15); position: relative;
+            transform: translateY(100%); transition: transform 0.3s ease-out;
         }
 
-        /* Modal 開啟時的狀態 */
-        .modal.is-open .modal-content {
-            transform: translateY(0);
-        }
+        .modal.is-open .modal-content { transform: translateY(0); }
 
-        .modal-content a {
-            color: #2563eb;
-            text-decoration: underline;
-        }
+        .modal-content a { color: #2563eb; text-decoration: underline; }
 
         /* Logistical List Style */
         .logistics-list {
-            white-space: pre-wrap;
-            font-size: 0.875rem;
-            color: #4b5563;
-            line-height: 1.5;
-            background-color: #f9fafb;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 8px;
+            white-space: pre-wrap; font-size: 0.875rem; color: #4b5563; line-height: 1.5;
+            background-color: #f9fafb; padding: 10px; border-radius: 8px; margin-top: 8px;
             border: 1px solid #e5e7eb;
         }
+        
+        /* 底部導航按鈕樣式 */
+        .nav-btn { color: #9ca3af; transition: all 0.2s; }
+        .nav-btn.active { color: #2563eb; }
+        .nav-btn.active .nav-icon { fill: currentColor; transform: scale(1.1); }
+        
+        /* Day 按鈕樣式 */
+        .day-tab-btn.active { background-color: #dbeafe; color: #1e40af; font-weight: 700; border: 1px solid #bfdbfe; }
+        .day-tab-btn.inactive { background-color: #ffffff; color: #6b7280; border: 1px solid #f3f4f6; }
     </style>
 </head>
 <body>
@@ -301,6 +258,9 @@
                         <label for="c6" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">轉接頭 (日本雙孔扁插)</label>
                     </li>
                 </ul>
+                <button onclick="localStorage.removeItem('user_itinerary_edits'); location.reload();" class="mt-4 text-xs text-red-500 hover:text-red-700 transition">
+                    清除所有本地編輯記錄
+                </button>
             </div>
         </main>
 
@@ -368,137 +328,144 @@
         </button>
     </nav>
 
-    <!-- 景點介紹 Modal 視窗 -->
-    <div id="details-modal" class="modal hidden" onclick="closeModal()">
+    <!-- 景點介紹 Modal 視窗 (用於閱讀詳細內容) -->
+    <div id="details-modal" class="modal hidden" onclick="closeModal('details-modal')">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4 border-b pb-2"></h3>
             <div id="modal-body" class="text-sm text-gray-700 leading-relaxed space-y-4">
                 <!-- 內容由 JS 填充 -->
             </div>
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 rounded-full bg-gray-50 transition">
+            <button onclick="closeModal('details-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 rounded-full bg-gray-50 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
     </div>
+    
+    <!-- 編輯 Modal 視窗 (用於修改行程內容) -->
+    <div id="edit-modal" class="modal hidden" onclick="closeModal('edit-modal')">
+        <form class="modal-content" onclick="event.stopPropagation()" onsubmit="saveEdit(event)">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">編輯行程項目</h3>
+            
+            <input type="hidden" id="edit-day-index">
+            <input type="hidden" id="edit-event-index">
+            <input type="hidden" id="edit-item-index">
+
+            <div class="mb-4">
+                <label for="edit-time" class="block text-xs font-bold text-gray-500 mb-1">時間 (Time)</label>
+                <input type="text" id="edit-time" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="例如: 10:00">
+            </div>
+
+            <div class="mb-4">
+                <label for="edit-title" class="block text-xs font-bold text-gray-500 mb-1">標題 (Title)</label>
+                <input type="text" id="edit-title" required class="w-full border border-gray-300 rounded-lg p-3 text-sm font-semibold focus:ring-blue-500 focus:border-blue-500" placeholder="景點或活動名稱">
+            </div>
+
+            <div class="mb-6">
+                <label for="edit-desc" class="block text-xs font-bold text-gray-500 mb-1">詳細說明/備註 (Description/Details)</label>
+                <textarea id="edit-desc" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="交通、備註、細節、地圖連結等 (可多行)"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('edit-modal')" class="bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition">
+                    取消
+                </button>
+                <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/50">
+                    儲存修改
+                </button>
+            </div>
+
+            <button type="button" onclick="closeModal('edit-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 rounded-full bg-gray-50 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </form>
+    </div>
 
     <script>
-        // 行程資料 (已全部內嵌於此，完全支援離線存取)
-        const itineraryData = [
+        // --- 核心資料與 LocalStorage 處理 ---
+
+        // 原始行程資料 (備份)
+        const originalItineraryData = [
             {
                 day: 1, dayLabel: 'D1', date: '12/5', location: '廣島市區',
                 events: [
-                    { time: '02:30', title: '交通：機場接送', type: 'transport', desc: '汐止 → 桃園機場' },
-                    { time: '03:50', title: '桃園機場 第2航廈', type: 'misc', desc: 'Check-in / 出境手續' },
-                    { time: '07:00', end: '10:15', title: '航班 CI112', type: 'transport', desc: 'TPE → HIJ' },
-                    { time: '10:15', title: '廣島機場', type: 'misc', desc: '入境手續' },
+                    { time: '02:30', title: '交通：機場接送', type: 'transport', desc: '汐止 → 桃園機場', uniqueId: 'd1e1' },
+                    { time: '03:50', title: '桃園機場 第2航廈', type: 'misc', desc: 'Check-in / 出境手續', uniqueId: 'd1e2' },
+                    { time: '07:00', end: '10:15', title: '航班 CI112', type: 'transport', desc: 'TPE → HIJ', uniqueId: 'd1e3' },
+                    { time: '10:15', title: '廣島機場', type: 'misc', desc: '入境手續', uniqueId: 'd1e4' },
                     { 
                         time: '10:40', 
                         title: '【機場巴士】廣島空港 → 廣島駅新幹線口', 
                         type: 'transport', 
-                        desc: [
-                            '🚌 乘車地點：廣島機場巴士【2號月台】',
-                            '💰 票價：¥1500',
-                            '⏳ 班次：約15分一班',
-                            '💡 備註：前門上車'
-                        ].join('\n')
+                        desc: '🚌 乘車地點：廣島機場巴士【2號月台】\n💰 票價：¥1500\n⏳ 班次：約15分一班\n💡 備註：前門上車',
+                        uniqueId: 'd1e5'
                     },
-                    { time: '11:30', title: '廣島駅新幹線口', type: 'misc', desc: '抵達廣島車站' },
+                    { time: '11:30', title: '廣島駅新幹線口', type: 'misc', desc: '抵達廣島車站', uniqueId: 'd1e6' },
                     { 
                         time: '11:45', 
                         title: '午餐：廣島車站', 
                         type: 'meal', 
-                        desc: [
-                            '📍 地點：minamoa / ekie',
-                            '1F 尾道拉麵',
-                            '2F SOUP CURRY KING 湯咖哩',
-                            '6F 叙々苑 (燒肉) 🕙 11:00-22:00',
-                            '6F 炭焼牛たん東山 雅 (仙台牛舌) 🕙 11:00-22:00'
-                        ].join('\n')
+                        desc: '📍 地點：minamoa / ekie\n1F 尾道拉麵\n2F SOUP CURRY KING 湯咖哩\n6F 叙々苑 (燒肉) 🕙 11:00-22:00\n6F 炭焼牛たん東山 雅 (仙台牛舌) 🕙 11:00-22:00',
+                        uniqueId: 'd1e7'
                     },
                     { 
                         time: '13:10', 
                         title: '廣島車站周邊購物', 
                         type: 'misc', 
-                        desc: [
-                            'ekie 2F 寶可夢中心',
-                            'minamoa 2F 北星巴克',
-                            'minamoa 4F 3COINS'
-                        ].join('\n')
+                        desc: 'ekie 2F 寶可夢中心\nminamoa 2F 北星巴克\nminamoa 4F 3COINS',
+                        uniqueId: 'd1e8'
                     },
-                    { time: '14:45', title: '交通：步行', type: 'transport', desc: '往東橫INN方向 (約7分鐘)' },
-                    { time: '15:00', title: 'Check-in', type: 'hotel', desc: '東橫INN 廣島站前大橋南' },
+                    { time: '14:45', title: '交通：步行', type: 'transport', desc: '往東橫INN方向 (約7分鐘)', uniqueId: 'd1e9' },
+                    { time: '15:00', title: 'Check-in', type: 'hotel', desc: '東橫INN 廣島站前大橋南', uniqueId: 'd1e10' },
                     { 
                         time: '15:30', 
                         title: '交通：前往和平公園', 
                         type: 'transport', 
-                        desc: [
-                            '🚌 公車 24/25 或 廣電前往和平紀念公園周邊。',
-                            '💰 車資：¥240',
-                            '路線選擇：',
-                            '。公車24：廣島站 6號月台 → 和平紀念公園 (23分)',
-                            '。公車25：稻荷町（廣島）2號月台 → 和平紀念公園 (20分)',
-                            '。廣電：稻荷町（廣島） → 袋町 (24分)'
-                        ].join('\n')
+                        desc: '🚌 公車 24/25 或 廣電前往和平紀念公園周邊。\n💰 車資：¥240\n路線選擇：\n。公車24：廣島站 6號月台 → 和平紀念公園 (23分)\n。公車25：稻荷町（廣島）2號月台 → 和平紀念公園 (20分)\n。廣電：稻荷町（廣島） → 袋町 (24分)',
+                        uniqueId: 'd1e11'
                     },
                     { 
                         time: '16:00', 
                         title: '廣島和平公園', 
                         type: 'spot',
+                        uniqueId: 'd1e12', // 景點事件本身
                         items: [
                             { 
                                 name: '廣島和平紀念資料館', 
                                 mapQuery: '廣島和平紀念資料館',
-                                logistics: [
-                                    '💰 門票：成人¥200 / 65歲以上¥100',
-                                    '🕙 營業時間：7:30 - 18:00',
-                                    '💡 備註：12月至2月特定時段需在線購票，售票至16:30'
-                                ],
-                                details: '由丹下健三設計，展示了原爆的慘痛歷史與遺物，目的是向世人傳達核武的可怕並祈求世界和平。館內展示內容震撼人心，是廣島最重要的歷史場所。'
+                                logistics: '💰 門票：成人¥200 / 65歲以上¥100\n🕙 營業時間：7:30 - 18:00\n💡 備註：12月至2月特定時段需在線購票，售票至16:30',
+                                details: '由丹下健三設計，展示了原爆的慘痛歷史與遺物，目的是向世人傳達核武的可怕並祈求世界和平。館內展示內容震撼人心，是廣島最重要的歷史場所。',
+                                uniqueId: 'd1e12i1' // 景點子項目
                             },
                             { 
                                 name: '廣島原爆圓頂館', 
                                 mapQuery: '原爆圓頂館',
-                                logistics: [
-                                    '💰 門票：免費 (室外景點)',
-                                    '🕙 點燈時間：20:00 至 0:00',
-                                    '🌐 AR連結: https://peace-tourism.com/description.html',
-                                    '💡 備註：1996年12月登錄為世界遺產。'
-                                ],
-                                details: '前身為廣島縣產業獎勵館，是少數在原爆中心附近沒有完全倒塌的建築。它保留了當時被轟炸後的殘破原貌，作為世界文化遺產，無聲地訴說著戰爭的殘酷。' 
+                                logistics: '💰 門票：免費 (室外景點)\n🕙 點燈時間：20:00 至 0:00\n🌐 AR連結: https://peace-tourism.com/description.html\n💡 備註：1996年12月登錄為世界遺產。',
+                                details: '前身為廣島縣產業獎勵館，是少數在原爆中心附近沒有完全倒塌的建築。它保留了當時被轟炸後的殘破原貌，作為世界文化遺產，無聲地訴說著戰爭的殘酷。' ,
+                                uniqueId: 'd1e12i2'
                             },
                             { 
                                 name: '和平紀念公園', 
                                 mapQuery: '廣島和平紀念公園',
-                                logistics: [
-                                    '💰 門票：免費 (戶外空間)',
-                                    '🕙 營業時間：全天開放'
-                                ],
-                                details: '位於元安川與本川之間的沙洲上，園內有許多紀念碑，包括「原爆死没者慰靈碑」與「和平之鐘」，是市民休憩與祈禱和平的聖地。'
+                                logistics: '💰 門票：免費 (戶外空間)\n🕙 營業時間：全天開放',
+                                details: '位於元安川與本川之間的沙洲上，園內有許多紀念碑，包括「原爆死没者慰靈碑」與「和平之鐘」，是市民休憩與祈禱和平的聖地。',
+                                uniqueId: 'd1e12i3'
                             }
                         ]
                     },
-                    { time: '18:30', title: '晚餐：松屋', type: 'meal', desc: '廣島本通商店街附近，或自由選擇' },
+                    { time: '18:30', title: '晚餐：松屋', type: 'meal', desc: '廣島本通商店街附近，或自由選擇', uniqueId: 'd1e13' },
                     { 
                         time: '19:30', 
                         title: '廣島本通商店街', 
                         type: 'misc', 
-                        desc: [
-                            'LOFT、Seria 🕙 10:00–19:30',
-                            '大創、UNIQLO 🕙 10:30–20:00',
-                            'PARCO 🕙 10:00–20:30',
-                            '唐吉軻德 🕙 10:00–05:00'
-                        ].join('\n')
+                        desc: 'LOFT、Seria 🕙 10:00–19:30\n大創、UNIQLO 🕙 10:30–20:00\nPARCO 🕙 10:00–20:30\n唐吉軻德 🕙 10:00–05:00',
+                        uniqueId: 'd1e14'
                     },
                     { 
                         time: '20:30', 
                         title: '交通：返回飯店', 
                         type: 'transport', 
-                        desc: [
-                            '💰 車資：¥240',
-                            '路線選擇：',
-                            '。廣電：八丁堀（廣島）→稻荷町（廣島），再步行4分 (12分)',
-                            '。公車：八丁堀→廣島站，再步行4分 (13分)'
-                        ].join('\n')
+                        desc: '💰 車資：¥240\n路線選擇：\n。廣電：八丁堀（廣島）→稻荷町（廣島），再步行4分 (12分)\n。公車：八丁堀→廣島站，再步行4分 (13分)',
+                        uniqueId: 'd1e15'
                     },
                 ]
             },
@@ -509,50 +476,51 @@
                         time: '09:00', 
                         title: '廣島城及周邊', 
                         type: 'spot',
+                        uniqueId: 'd2e1',
                         items: [
                             { 
                                 name: '廣島城 (鯉城)', 
                                 mapQuery: '廣島城',
-                                logistics: [
-                                    '💰 門票：天守閣 ¥370',
-                                    '🕙 營業時間：9:00 - 17:00 (12/10-3/31)',
-                                ],
-                                details: '別名「鯉城」，由毛利輝元建於1589年。雖然天守閣在原爆中倒塌，但後來以鋼筋混凝土重建。現在內部是介紹武家文化的歷史博物館，頂樓可眺望市區。'
+                                logistics: '💰 門票：天守閣 ¥370\n🕙 營業時間：9:00 - 17:00 (12/10-3/31)',
+                                details: '別名「鯉城」，由毛利輝元建於1589年。雖然天守閣在原爆中倒塌，但後來以鋼筋混凝土重建。現在內部是介紹武家文化的歷史博物館，頂樓可眺望市區。',
+                                uniqueId: 'd2e1i1'
                             },
                             { 
                                 name: '廣島護國神社', 
                                 mapQuery: '廣島護國神社',
-                                logistics: ['💰 門票：免費', '🕙 營業時間：全天開放'],
-                                details: '位於廣島城內，是廣島鯉魚隊每年必來祈求勝利的神社，因此以「鯉魚御守」聞名，也是當地新年參拜人數最多的神社。'
+                                logistics: '💰 門票：免費\n🕙 營業時間：全天開放',
+                                details: '位於廣島城內，是廣島鯉魚隊每年必來祈求勝利的神社，因此以「鯉魚御守」聞名，也是當地新年參拜人數最多的神社。',
+                                uniqueId: 'd2e1i2'
                             }
                         ]
                     },
-                    { time: '11:45', title: '午餐：廣島車站 6F', type: 'meal', desc: '炭焼牛たん東山 雅 (仙台牛舌)' },
+                    { time: '11:45', title: '午餐：廣島車站 6F', type: 'meal', desc: '炭焼牛たん東山 雅 (仙台牛舌)', uniqueId: 'd2e2' },
                     { 
                         time: '13:00', 
                         title: '交通：JR山陽本線 → 吳市', 
                         type: 'transport', 
-                        desc: '約30分鐘，下車後建議先確認吳灣船艦夕陽船班報名狀況' 
+                        desc: '約30分鐘，下車後建議先確認吳灣船艦夕陽船班報名狀況',
+                        uniqueId: 'd2e3' 
                     },
                     { 
                         time: '14:00', 
                         title: '吳市博物館群', 
                         type: 'spot',
+                        uniqueId: 'd2e4',
                         items: [
                             { 
                                 name: '大和博物館', 
                                 mapQuery: '大和博物館',
-                                logistics: [
-                                    '💰 門票：¥500', 
-                                    '🕙 營業時間：9:00 - 18:00 (週二休館)'
-                                ],
-                                details: '吳市曾是東洋第一軍港。館內展示了鎮館之寶：全長26.3公尺的「1/10 戰艦大和號」模型，細節精緻逼真，讓人感受到當時造船技術的宏偉。'
+                                logistics: '💰 門票：¥500\n🕙 營業時間：9:00 - 18:00 (週二休館)',
+                                details: '吳市曾是東洋第一軍港。館內展示了鎮館之寶：全長26.3公尺的「1/10 戰艦大和號」模型，細節精緻逼真，讓人感受到當時造船技術的宏偉。',
+                                uniqueId: 'd2e4i1'
                             },
                             { 
                                 name: '海上自衛隊吳史料館 (鐵鯨館)', 
                                 mapQuery: '海上自衛隊吳史料館',
-                                logistics: ['💰 門票：免費', '🕙 營業時間：9:00 - 17:00 (週二休館)'],
-                                details: '別名「鐵鯨館」，是日本唯一展示真實退役潛水艇（秋潮號）的博物館。您可以實際進入潛水艇內部參觀，體驗船員的生活空間，非常難得！'
+                                logistics: '💰 門票：免費\n🕙 營業時間：9:00 - 17:00 (週二休館)',
+                                details: '別名「鐵鯨館」，是日本唯一展示真實退役潛水艇（秋潮號）的博物館。您可以實際進入潛水艇內部參觀，體驗船員的生活空間，非常難得！',
+                                uniqueId: 'd2e4i2'
                             }
                         ]
                     },
@@ -560,154 +528,326 @@
                         time: '17:00', 
                         title: '吳灣船艦巡禮', 
                         type: 'spot', 
+                        uniqueId: 'd2e5',
                         items: [{
                             name: '吳灣船艦巡禮',
                             mapQuery: '吳灣艦船めぐり',
-                            logistics: [
-                                '💰 船票：¥1500 (視船班而定)',
-                                '🕙 夕陽航班：約16:00 (需預先確認)'
-                            ],
-                            details: '搭乘遊覽船從海上近距離觀看海上自衛隊的現役潛水艇與護衛艦，魄力十足。若參加夕陽航班，還有機會看到自衛艦降旗儀式（ラッパ演奏）。'
+                            logistics: '💰 船票：¥1500 (視船班而定)\n🕙 夕陽航班：約16:00 (需預先確認)',
+                            details: '搭乘遊覽船從海上近距離觀看海上自衛隊的現役潛水艇與護衛艦，魄力十足。若參加夕陽航班，還有機會看到自衛艦降旗儀式（ラッパ演奏）。',
+                            uniqueId: 'd2e5i1'
                         }]
                     },
                     { 
                         time: '18:00', 
                         title: '晚餐/購物 (Youme Town 吳店)', 
                         type: 'meal', 
-                        desc: [
-                            '🍴 晚餐：定食屋百菜旬 (3F)',
-                            '🛍️ 購物：Uniqlo、Seria (1-2F)'
-                        ].join('\n')
+                        desc: '🍴 晚餐：定食屋百菜旬 (3F)\n🛍️ 購物：Uniqlo、Seria (1-2F)',
+                        uniqueId: 'd2e6'
                     },
-                    { time: '20:00', title: '交通：JR山陽本線 → 廣島', type: 'transport', desc: '返回廣島市區' }
+                    { time: '20:00', title: '交通：JR山陽本線 → 廣島', type: 'transport', desc: '返回廣島市區', uniqueId: 'd2e7' }
                 ]
             },
             {
                 day: 3, dayLabel: 'D3', date: '12/7', location: '尾道/三原',
                 events: [
-                    { time: '08:48', title: '交通：山陽本線 廣島 → 尾道', type: 'transport', desc: '約1小時40分' },
-                    { time: '10:45', title: '尾道本通商店街', type: 'misc', desc: '感受懷舊氛圍' },
-                    { time: '11:30', title: '午餐：尾道拉麵 / 小野貓', type: 'meal', desc: '品嚐當地特色拉麵或咖啡廳' },
-                    { time: '13:00', title: '交通：千光寺纜車', type: 'transport', desc: '💰 單程 ¥320 / 來回 ¥500' },
+                    { time: '08:48', title: '交通：山陽本線 廣島 → 尾道', type: 'transport', desc: '約1小時40分', uniqueId: 'd3e1' },
+                    { time: '10:45', title: '尾道本通商店街', type: 'misc', desc: '感受懷舊氛圍', uniqueId: 'd3e2' },
+                    { time: '11:30', title: '午餐：尾道拉麵 / 小野貓', type: 'meal', desc: '品嚐當地特色拉麵或咖啡廳', uniqueId: 'd3e3' },
+                    { time: '13:00', title: '交通：千光寺纜車', type: 'transport', desc: '💰 單程 ¥320 / 來回 ¥500', uniqueId: 'd3e4' },
                     { 
                         time: '13:30', 
                         title: '尾道文學之道', 
                         type: 'spot',
+                        uniqueId: 'd3e5',
                         items: [
                             { 
                                 name: '千光寺', 
                                 mapQuery: '千光寺',
-                                logistics: ['💰 門票：免費', '🕙 營業時間：6:00 - 17:00'],
-                                details: '依山而建的古寺，其中的「赤堂」與巨大的「玉之岩」是象徵。這裡視野極佳，可以俯瞰尾道水道與瀨戶內海的絕美景色，也是戀人的聖地。'
+                                logistics: '💰 門票：免費\n🕙 營業時間：6:00 - 17:00',
+                                details: '依山而建的古寺，其中的「赤堂」與巨大的「玉之岩」是象徵。這裡視野極佳，可以俯瞰尾道水道與瀨戶內海的絕美景色，也是戀人的聖地。',
+                                uniqueId: 'd3e5i1'
                             },
                             { 
                                 name: '貓之細道', 
                                 mapQuery: '貓の細道',
-                                logistics: ['💰 門票：免費', '💡 備註：尋找藝術家創作的「福石貓」'],
-                                details: '一條蜿蜒的坡道小徑，沿途藏著許多由藝術家園山春二創作的「福石貓」。這裡充滿懷舊氛圍，還有許多真正的貓咪出沒，是貓奴必訪的療癒景點。'
+                                logistics: '💰 門票：免費\n💡 備註：尋找藝術家創作的「福石貓」',
+                                details: '一條蜿蜒的坡道小徑，沿途藏著許多由藝術家園山春二創作的「福石貓」。這裡充滿懷舊氛圍，還有許多真正的貓咪出沒，是貓奴必訪的療癒景點。',
+                                uniqueId: 'd3e5i2'
                             },
                              { 
                                 name: '尾道市立美術館', 
                                 mapQuery: '尾道市立美術館',
-                                logistics: ['💰 門票：¥300 (常設展)', '🕙 營業時間：9:00 - 17:00 (週一休館)'],
-                                details: '位於千光寺公園內，由建築大師安藤忠雄設計改建。最著名的是曾經有兩隻貓咪「Ken & Go」試圖闖入美術館與警衛對峙的可愛畫面，紅遍全球。'
+                                logistics: '💰 門票：¥300 (常設展)\n🕙 營業時間：9:00 - 17:00 (週一休館)',
+                                details: '位於千光寺公園內，由建築大師安藤忠雄設計改建。最著名的是曾經有兩隻貓咪「Ken & Go」試圖闖入美術館與警衛對峙的可愛畫面，紅遍全球。',
+                                uniqueId: 'd3e5i3'
                             }
                         ]
                     },
-                    { time: '17:03', title: '交通：山陽本線 尾道 → 三原', type: 'transport', desc: '車程約15分鐘' },
+                    { time: '17:03', title: '交通：山陽本線 尾道 → 三原', type: 'transport', desc: '車程約15分鐘', uniqueId: 'd3e6' },
                     { 
                         time: '17:20', 
                         title: '三原城跡', 
                         type: 'spot',
+                        uniqueId: 'd3e7',
                         items: [{ 
                             name: '三原城跡', 
                             mapQuery: '三原城跡',
-                            logistics: ['💰 門票：免費', '💡 備註：天守台石垣與車站共構'],
-                            details: '由小早川隆景所建，曾經是浮在海上的水軍城。現在天守台的石垣遺跡就直接與三原車站合為一體，是個非常獨特的「車站城」。'
+                            logistics: '💰 門票：免費\n💡 備註：天守台石垣與車站共構',
+                            details: '由小早川隆景所建，曾經是浮在海上的水軍城。現在天守台的石垣遺跡就直接與三原車站合為一體，是個非常獨特的「車站城」。',
+                            uniqueId: 'd3e7i1'
                         }]
                     },
-                    { time: '17:30', title: '晚餐：和食処 登喜将', type: 'meal', desc: '三原站周邊餐廳' },
-                    { time: '19:13', title: '交通：JR山陽本線 三原 → 廣島', type: 'transport', desc: '返回廣島' },
+                    { time: '17:30', title: '晚餐：和食処 登喜将', type: 'meal', desc: '三原站周邊餐廳', uniqueId: 'd3e8' },
+                    { time: '19:13', title: '交通：JR山陽本線 三原 → 廣島', type: 'transport', desc: '返回廣島', uniqueId: 'd3e9' },
                 ]
             },
             {
                 day: 4, dayLabel: 'D4', date: '12/8', location: '宮島',
                 events: [
-                    { time: '09:00', title: '交通：JR → 宮島口', type: 'transport', desc: 'JR山陽本線' },
-                    { time: '09:20', title: '交通：宮島渡輪', type: 'transport', desc: '💰 單程 ¥180 (JR 或 松大汽船)' },
+                    { time: '09:00', title: '交通：JR → 宮島口', type: 'transport', desc: 'JR山陽本線', uniqueId: 'd4e1' },
+                    { time: '09:20', title: '交通：宮島渡輪', type: 'transport', desc: '💰 單程 ¥180 (JR 或 松大汽船)', uniqueId: 'd4e2' },
                     { 
                         time: '10:00', 
                         title: '宮島自然與歷史', 
                         type: 'spot',
+                        uniqueId: 'd4e3',
                         items: [
                             { 
                                 name: '紅葉谷公園', 
                                 mapQuery: '紅葉谷公園',
-                                logistics: ['💰 門票：免費', '💡 備註：賞楓、野生鹿群出沒'],
-                                details: '位於彌山腳下，擁有約700棵楓樹。秋天時滿山火紅，景色如詩如畫，是日本著名的賞楓勝地，也是宮島鹿群常出沒的地方。'
+                                logistics: '💰 門票：免費\n💡 備註：賞楓、野生鹿群出沒',
+                                details: '位於彌山腳下，擁有約700棵楓樹。秋天時滿山火紅，景色如詩如畫，是日本著名的賞楓勝地，也是宮島鹿群常出沒的地方。',
+                                uniqueId: 'd4e3i1'
                             },
                             { 
                                 name: '世界自然遺產-彌山', 
                                 mapQuery: '彌山',
-                                logistics: ['💰 門票：纜車來回 ¥2000', '💡 備註：包含不滅的「靈火堂」'],
-                                details: '宮島的主峰，保留了原始森林。山頂有「靈火堂」，供奉著弘法大師點燃後燃燒了1200年不滅的靈火，據說這火也是和平紀念公園「和平之燈」的火種來源。'
+                                logistics: '💰 門票：纜車來回 ¥2000\n💡 備註：包含不滅的「靈火堂」',
+                                details: '宮島的主峰，保留了原始森林。山頂有「靈火堂」，供奉著弘法大師點燃後燃燒了1200年不滅的靈火，據說這火也是和平紀念公園「和平之燈」的火種來源。',
+                                uniqueId: 'd4e3i2'
                             }
                         ]
                     },
-                    { time: '12:00', title: '午餐：自備 (山上) / 表參道美食', type: 'meal', desc: '牡蠣、穴子飯、紅葉饅頭' },
-                    { time: '13:30', title: '嚴島神社表參道商店街', type: 'misc', desc: '購物、寄明信片' },
+                    { time: '12:00', title: '午餐：自備 (山上) / 表參道美食', type: 'meal', desc: '牡蠣、穴子飯、紅葉饅頭', uniqueId: 'd4e4' },
+                    { time: '13:30', title: '嚴島神社表參道商店街', type: 'misc', desc: '購物、寄明信片', uniqueId: 'd4e5' },
                     { 
                         time: '15:00', 
                         title: '嚴島神社周邊', 
                         type: 'spot',
+                        uniqueId: 'd4e6',
                         items: [
                             { 
                                 name: '嚴島神社 & 大鳥居', 
                                 mapQuery: '嚴島神社',
-                                logistics: ['💰 門票：¥300 (神社本體)', '💡 備註：潮汐時間請事先確認'],
-                                details: '建於海上的神社，擁有1400年歷史，也是世界文化遺產。漲潮時大鳥居彷彿漂浮在海面上，夢幻無比；退潮時則可步行至鳥居下方觸摸柱腳。'
+                                logistics: '💰 門票：¥300 (神社本體)\n💡 備註：潮汐時間請事先確認',
+                                details: '建於海上的神社，擁有1400年歷史，也是世界文化遺產。漲潮時大鳥居彷彿漂浮在海面上，夢幻無比；退潮時則可步行至鳥居下方觸摸柱腳。',
+                                uniqueId: 'd4e6i1'
                             },
                             { 
                                 name: '豐國神社千疊閣', 
                                 mapQuery: '千疊閣',
-                                logistics: ['💰 門票：¥100', '🕙 營業時間：8:30 - 16:30'],
-                                details: '豐臣秀吉為了祭奠戰歿將士而建的大經堂，因面積寬達857疊榻榻米而得名。這是一座未完成的建築，沒有天花板與牆壁，通風極佳，充滿歷史滄桑感。'
+                                logistics: '💰 門票：¥100\n🕙 營業時間：8:30 - 16:30',
+                                details: '豐臣秀吉為了祭奠戰歿將士而建的大經堂，因面積寬達857疊榻榻米而得名。這是一座未完成的建築，沒有天花板與牆壁，通風極佳，充滿歷史滄桑感。',
+                                uniqueId: 'd4e6i2'
                             },
                             { 
                                 name: '大聖院', 
                                 mapQuery: '大聖院',
-                                logistics: ['💰 門票：免費', '💡 備註：有「遍照窟」八十八所巡禮'],
-                                details: '宮島歷史最悠久的寺廟，與弘法大師淵源深厚。境內有「遍照窟」，內有四國八十八處靈場的砂，據說走一圈就能獲得遍路巡禮的功德，還有可愛的「愚癡聽聞地藏」。'
+                                logistics: '💰 門票：免費\n💡 備註：有「遍照窟」八十八所巡禮',
+                                details: '宮島歷史最悠久的寺廟，與弘法大師淵源深厚。境內有「遍照窟」，內有四國八十八處靈場的砂，據說走一圈就能獲得遍路巡禮的功德，還有可愛的「愚癡聽聞地藏」。',
+                                uniqueId: 'd4e6i3'
                             }
                         ]
                     },
-                    { time: '18:00', title: '交通：宮島渡輪回廣島', type: 'transport' },
+                    { time: '18:00', title: '交通：宮島渡輪回廣島', type: 'transport', desc: '返回廣島車站', uniqueId: 'd4e7' },
                 ]
             },
             {
                 day: 5, dayLabel: 'D5', date: '12/9', location: '返程',
                 events: [
-                    { time: '06:30', title: 'Check-out / 廣島新幹線口', type: 'hotel', desc: '退房後前往廣島車站新幹線口' },
-                    { time: '07:00', title: '交通：機場巴士 → 廣島機場', type: 'transport', desc: '約45-50分鐘' },
-                    { time: '11:15', end: '13:10', title: '航班 HIJ → TPE', type: 'transport', desc: '華航 CI113' }
+                    { time: '06:30', title: 'Check-out / 廣島新幹線口', type: 'hotel', desc: '退房後前往廣島車站新幹線口', uniqueId: 'd5e1' },
+                    { time: '07:00', title: '交通：機場巴士 → 廣島機場', type: 'transport', desc: '約45-50分鐘', uniqueId: 'd5e2' },
+                    { time: '11:15', end: '13:10', title: '航班 HIJ → TPE', type: 'transport', desc: '華航 CI113', uniqueId: 'd5e3' }
                 ]
             }
         ];
+        
+        // 變數用於儲存當前使用的行程資料
+        let currentItineraryData = [];
+        // 變數用於儲存當前顯示的 Day Index
+        let currentDayIndex = 0;
 
-        // --- Functions ---
+        // --- 初始化與資料載入 (離線 LocalStorage) ---
+        function loadItineraryData() {
+            try {
+                const storedData = localStorage.getItem('user_itinerary_edits');
+                if (storedData) {
+                    currentItineraryData = JSON.parse(storedData);
+                    console.log('行程已從 LocalStorage 載入。');
+                    // 檢查數據結構是否相容，如果不相容則使用備份
+                    if (!Array.isArray(currentItineraryData) || currentItineraryData.length !== originalItineraryData.length) {
+                         currentItineraryData = JSON.parse(JSON.stringify(originalItineraryData));
+                         console.log('LocalStorage 資料結構異常，已載入原始資料。');
+                    }
+                } else {
+                    // 如果沒有存儲的數據，則使用原始數據
+                    currentItineraryData = JSON.parse(JSON.stringify(originalItineraryData));
+                    console.log('載入原始行程資料。');
+                }
+            } catch (e) {
+                console.error('LocalStorage 讀取或解析錯誤，使用原始資料:', e);
+                currentItineraryData = JSON.parse(JSON.stringify(originalItineraryData));
+            }
+        }
+        
+        function saveItineraryData() {
+             try {
+                // 只儲存實際在用的數據
+                localStorage.setItem('user_itinerary_edits', JSON.stringify(currentItineraryData));
+                console.log('行程修改已存入 LocalStorage。');
+            } catch (e) {
+                console.error('LocalStorage 寫入錯誤:', e);
+            }
+        }
 
-        // 主 Tab 切換
+        // --- 模態視窗通用功能 ---
+        window.closeModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                 modal.classList.remove('is-open');
+                 setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                 }, 300);
+            }
+        };
+
+
+        // --- 編輯功能 (長按/右鍵觸發) ---
+
+        // 查找事件或子項目 by uniqueId
+        function findEventByUniqueId(uniqueId) {
+            for (let d = 0; d < currentItineraryData.length; d++) {
+                const day = currentItineraryData[d];
+                for (let e = 0; e < day.events.length; e++) {
+                    const event = day.events[e];
+                    if (event.uniqueId === uniqueId) {
+                        return { dayIndex: d, eventIndex: e, event: event, isItem: false };
+                    }
+                    if (event.items) {
+                        for (let i = 0; i < event.items.length; i++) {
+                            const item = event.items[i];
+                            if (item.uniqueId === uniqueId) {
+                                return { dayIndex: d, eventIndex: e, itemIndex: i, item: item, isItem: true };
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // 顯示編輯模態視窗 (離線可用)
+        window.showEditModal = function(uniqueId, event) {
+            // 阻止長按/右鍵菜單彈出
+            event.preventDefault(); 
+            event.stopPropagation();
+            
+            const found = findEventByUniqueId(uniqueId);
+            if (!found) {
+                console.error('找不到 uniqueId:', uniqueId);
+                return;
+            }
+            
+            const data = found.isItem ? found.item : found.event;
+            const descField = found.isItem ? data.details : data.desc; // 景點的詳細資訊是 details，一般項目的詳細資訊是 desc
+            const timeField = found.isItem ? (found.event.time || '') : (data.time || ''); // 子項目不編輯時間
+
+            // 填充表單
+            document.getElementById('edit-day-index').value = found.dayIndex;
+            document.getElementById('edit-event-index').value = found.eventIndex;
+            document.getElementById('edit-item-index').value = found.isItem ? found.itemIndex : -1; // -1 表示不是子項目
+
+            document.getElementById('edit-time').value = timeField;
+            document.getElementById('edit-title').value = data.title || data.name;
+            document.getElementById('edit-desc').value = descField || ''; 
+            
+            // 根據是否為景點子項目，調整時間欄位狀態
+            const timeInput = document.getElementById('edit-time');
+            if (found.isItem) {
+                timeInput.disabled = true;
+                timeInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+                timeInput.placeholder = '景點子項目不編輯時間';
+            } else {
+                timeInput.disabled = false;
+                timeInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                timeInput.placeholder = '例如: 10:00';
+            }
+
+            // 顯示模態視窗
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.add('is-open'); 
+                document.body.style.overflow = 'hidden';
+            });
+        };
+
+        // 儲存編輯 (離線可用)
+        window.saveEdit = function(e) {
+            e.preventDefault();
+
+            const dayIndex = parseInt(document.getElementById('edit-day-index').value);
+            const eventIndex = parseInt(document.getElementById('edit-event-index').value);
+            const itemIndex = parseInt(document.getElementById('edit-item-index').value);
+
+            const newTime = document.getElementById('edit-time').value.trim();
+            const newTitle = document.getElementById('edit-title').value.trim();
+            const newDesc = document.getElementById('edit-desc').value.trim();
+            
+            if (dayIndex >= 0 && eventIndex >= 0) {
+                let target;
+                if (itemIndex >= 0) {
+                    // 景點子項目
+                    target = currentItineraryData[dayIndex].events[eventIndex].items[itemIndex];
+                    target.name = newTitle; // 更新名稱
+                    target.details = newDesc; // 更新景點介紹
+                } else {
+                    // 一般事件
+                    target = currentItineraryData[dayIndex].events[eventIndex];
+                    target.time = newTime;
+                    target.title = newTitle;
+                    target.desc = newDesc; // 更新備註
+                }
+                
+                // 儲存到 LocalStorage
+                saveItineraryData();
+                
+                // 重新渲染當前頁面
+                renderItinerary(currentDayIndex);
+                
+                // 關閉 Modal
+                closeModal('edit-modal');
+            } else {
+                console.error('編輯索引錯誤');
+            }
+        };
+
+        // --- 行程渲染與事件綁定 ---
+        
+        // 主 Tab 切換 (離線可用)
         window.switchMainTab = function(tabId) {
             document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
 
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            // 找出對應的按鈕加 active
             const navMap = { 'itinerary': 0, 'info': 1, 'prep': 2, 'guide': 3 };
             document.querySelectorAll('.nav-btn')[navMap[tabId]].classList.add('active');
             
-            // 切換到其他頁面時，將捲動位置歸零
-            if (tabId !== 'itinerary') {
+            if (tabId === 'itinerary') {
+                // 如果切回行程，重新渲染當前日期
+                renderItinerary(currentDayIndex);
+            } else {
                 window.scrollTo(0,0);
             }
         };
@@ -720,15 +860,11 @@
         // 顯示景點介紹彈窗 (離線可用)
         window.showDetailsModal = function(encodedDetails, title) {
             try {
-                // Base64 解碼
                 const details = decodeURIComponent(escape(atob(encodedDetails)));
-                
-                // 簡易 Markdown 格式化
                 let formattedDetails = details.replace(/\n/g, '<br>');
                 formattedDetails = formattedDetails.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
                 formattedDetails = formattedDetails.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                 formattedDetails = formattedDetails.replace(/---/g, '<hr class="my-4 border-gray-200">');
-
 
                 document.getElementById('modal-title').textContent = title;
                 document.getElementById('modal-body').innerHTML = formattedDetails;
@@ -739,31 +875,20 @@
                     modal.classList.add('is-open'); 
                     document.body.style.overflow = 'hidden';
                 });
-
             } catch (e) {
                 console.error("Error decoding or rendering modal content:", e);
             }
         };
 
-        // 關閉景點介紹彈窗 (離線可用)
-        window.closeModal = function() {
-            const modal = document.getElementById('details-modal');
-            modal.classList.remove('is-open');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.body.style.overflow = '';
-            }, 300);
-        };
-
-
         // 渲染行程 (離線可用)
         function renderItinerary(dayIndex) {
+            currentDayIndex = dayIndex; // 更新當前日期索引
             const container = document.getElementById('day-content-container');
-            const data = itineraryData[dayIndex];
+            const data = currentItineraryData[dayIndex];
             
-            // Render Tabs (Day 1 - Day 5) - 使用 flex-1 實現平均分佈, 方形圓角設計
+            // Render Tabs
             const tabContainer = document.getElementById('day-tabs-container');
-            tabContainer.innerHTML = itineraryData.map((d, idx) => `
+            tabContainer.innerHTML = currentItineraryData.map((d, idx) => `
                 <button onclick="renderItinerary(${idx})" 
                     class="day-tab-btn flex-1 aspect-[1/0.9] rounded-xl flex flex-col items-center justify-center shadow-sm
                            ${idx === dayIndex ? 'active' : 'inactive'}">
@@ -775,31 +900,33 @@
             // Render Events
             let html = `<div class="mb-5 text-sm font-medium text-gray-500 pl-2 flex items-center"><span class="mr-1">📍</span> ${data.location}</div>`;
             
-            html += data.events.map((event, idx) => {
-                // 判斷類型顏色
+            html += data.events.map((event, eventIndex) => {
                 let dotColor = 'bg-gray-300';
-                
                 if (event.type === 'transport') { dotColor = 'bg-blue-400'; }
                 else if (event.type === 'meal') { dotColor = 'bg-orange-400'; }
                 else if (event.type === 'spot') { dotColor = 'bg-red-500'; }
                 else if (event.type === 'hotel') { dotColor = 'bg-indigo-400'; }
 
-                // 內容區塊容器
                 let contentWrapperHtml = '';
                 
                 if (event.type === 'spot' && event.items) {
-                    // 多個景點合併顯示
+                    // 景點事件群組 (無法直接編輯群組標題，只能編輯子項目)
                     contentWrapperHtml = `
                         <div class="mb-2 text-xs font-mono font-bold text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">${event.time}</div>
                         <div class="space-y-4">
-                            ${event.items.map(item => {
-                                // 將 details 進行 Base64 編碼，以安全傳遞複雜字串給 JS 函數
+                            ${event.items.map((item, itemIndex) => {
+                                // 景點子項目 - 綁定長按/右鍵事件
                                 const encodedDetails = btoa(unescape(encodeURIComponent(item.details)));
-                                // 提取 logistics
-                                const logisticsHtml = item.logistics ? `<div class="logistics-list">${item.logistics.join('\n')}</div>` : '';
+                                const logisticsHtml = item.logistics ? `<div class="logistics-list">${item.logistics}</div>` : '';
 
                                 return `
-                                <div class="bg-white rounded-xl p-4 flat-card border border-gray-100 shadow-sm relative overflow-hidden">
+                                <div class="bg-white rounded-xl p-4 flat-card border border-gray-100 shadow-sm relative overflow-hidden editable-card"
+                                     oncontextmenu="showEditModal('${item.uniqueId}', event)"
+                                     ontouchstart="handleTouchStart(event, '${item.uniqueId}')"
+                                     ontouchend="handleTouchEnd()"
+                                     onmousedown="handleMouseDown(event, '${item.uniqueId}')"
+                                     onmouseup="handleMouseUp()"
+                                >
                                     <div class="relative z-10">
                                         <div class="font-bold text-gray-800 text-lg mb-2 flex justify-between items-start">
                                             ${item.name}
@@ -808,10 +935,8 @@
                                             </button>
                                         </div>
                                         
-                                        <!-- Logistical Details (New Requirement) -->
                                         ${logisticsHtml}
 
-                                        <!-- 景點介紹按鈕 (開啟 Slide-Up Modal) -->
                                         <button onclick="showDetailsModal('${encodedDetails}', '${item.name}')" 
                                             class="mt-3 text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center">
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
@@ -823,12 +948,17 @@
                         </div>
                     `;
                 } else {
-                    // 一般單一事件 (交通、餐飲、購物等)
-                    // 對 desc 換行處理 (New Requirement)
+                    // 一般單一事件 - 綁定長按/右鍵事件
                     const descHtml = event.desc ? `<div class="logistics-list">${event.desc}</div>` : '';
 
                     contentWrapperHtml = `
-                        <div class="flat-card p-4 relative bg-white">
+                        <div class="flat-card p-4 relative bg-white editable-card"
+                             oncontextmenu="showEditModal('${event.uniqueId}', event)"
+                             ontouchstart="handleTouchStart(event, '${event.uniqueId}')"
+                             ontouchend="handleTouchEnd()"
+                             onmousedown="handleMouseDown(event, '${event.uniqueId}')"
+                             onmouseup="handleMouseUp()"
+                        >
                             <div class="text-xs font-mono font-bold text-gray-500 mb-1">${event.time}</div>
                             <div class="font-bold text-gray-800 text-base">${event.title}</div>
                             ${descHtml}
@@ -854,8 +984,70 @@
         }
         window.renderItinerary = renderItinerary;
 
-        // Init: 預設顯示 Day 1
-        renderItinerary(0);
+        // --- 觸摸/滑鼠事件處理 (用於實現長按/右鍵編輯) ---
+        let touchTimer = null;
+        let isMoving = false; // 用於判斷是否為滑動，而不是點擊/長按
+
+        // 觸摸開始 (長按)
+        window.handleTouchStart = function(event, uniqueId) {
+            // 允許單點觸摸
+            if (event.touches.length > 1) return;
+            isMoving = false;
+            
+            // 設置計時器，如果持續按下 800ms，則觸發編輯
+            touchTimer = setTimeout(() => {
+                // 如果沒有滑動，才觸發編輯
+                if (!isMoving) {
+                    showEditModal(uniqueId, event);
+                }
+            }, 800); 
+
+            // 監聽移動事件 (如果手指移動超過一定距離，則取消長按)
+            event.currentTarget.addEventListener('touchmove', handleTouchMove);
+        };
+        
+        // 觸摸移動
+        function handleTouchMove(event) {
+            // 如果觸摸點移動超過一定距離，視為滑動
+            if (Math.abs(event.touches[0].clientX - event.currentTarget.getBoundingClientRect().left) > 10 ||
+                Math.abs(event.touches[0].clientY - event.currentTarget.getBoundingClientRect().top) > 10) {
+                isMoving = true;
+            }
+            clearTimeout(touchTimer);
+        }
+
+        // 觸摸結束
+        window.handleTouchEnd = function() {
+            clearTimeout(touchTimer);
+            // 移除移動監聽器
+            document.querySelectorAll('.editable-card').forEach(card => card.removeEventListener('touchmove', handleTouchMove));
+        };
+        
+        // 滑鼠按下 (用於電腦/滑鼠右鍵)
+        window.handleMouseDown = function(event, uniqueId) {
+            // 0: 左鍵, 2: 右鍵
+            if (event.button === 0) {
+                // 左鍵模擬長按
+                isMoving = false;
+                touchTimer = setTimeout(() => {
+                    if (!isMoving) {
+                        showEditModal(uniqueId, event);
+                    }
+                }, 800);
+            }
+        };
+
+        // 滑鼠抬起
+        window.handleMouseUp = function() {
+             clearTimeout(touchTimer);
+        };
+        
+        // --- 初始化 ---
+        window.onload = function() {
+            loadItineraryData();
+            // 預設顯示 Day 1
+            renderItinerary(0);
+        };
 
     </script>
 </body>
