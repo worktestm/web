@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>廣島五天四夜</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f9fafb; /* 淺灰背景讓白色卡片更跳 */
+            color: #333;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 90px; /* 預留底部導航空間 */
+        }
+
+        /* 隱藏 Scrollbar 但保持滑動功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* 扁平化卡片樣式 */
+        .flat-card {
+            border: 1px solid #e5e7eb;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        /* 時間軸線條 */
+        .timeline-line {
+            position: absolute;
+            left: 5px; 
+            top: 24px; 
+            bottom: -24px;
+            width: 2px;
+            background-color: #e5e7eb;
+            z-index: 0;
+        }
+        .timeline-item:last-child .timeline-line {
+            display: none;
+        }
+
+        /* 底部導航按鈕樣式 */
+        .nav-btn {
+            color: #9ca3af;
+            transition: all 0.2s;
+        }
+        .nav-btn.active {
+            color: #2563eb; /* Blue 600 */
+        }
+        .nav-btn.active .nav-icon {
+            fill: currentColor;
+            transform: scale(1.1);
+        }
+
+        /* Day 按鈕樣式 */
+        .day-tab-btn {
+            transition: all 0.2s ease;
+        }
+        .day-tab-btn.active {
+            background-color: #dbeafe; /* blue-100 */
+            color: #1e40af; /* blue-800 */
+            font-weight: 700;
+            border: 1px solid #bfdbfe;
+        }
+        .day-tab-btn.inactive {
+            background-color: #ffffff;
+            color: #6b7280;
+            border: 1px solid #f3f4f6;
+        }
+
+        /* Modal 樣式 (Slide-Up) */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: flex;
+            align-items: flex-end; /* 對齊底部 */
+            justify-content: center;
+            padding: 0; /* 移除外層 padding */
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            transform: translateY(100%); /* 初始在底部之外 */
+            transition: transform 0.3s ease-out;
+        }
+
+        /* Modal 開啟時的狀態 */
+        .modal.is-open .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-content a {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        /* Logistical List Style */
+        .logistics-list {
+            white-space: pre-wrap; /* 保持換行符 */
+            font-size: 0.875rem; /* text-sm */
+            color: #4b5563; /* gray-600 */
+            line-height: 1.5;
+            background-color: #f9fafb;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            border: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部標題 (Relative: 隨頁面捲動消失) -->
+    <header class="relative w-full bg-white z-20 px-4 py-6 text-center mb-2">
+        <h1 class="text-2xl font-bold tracking-wide text-gray-800">廣島之旅</h1>
+        <p class="text-xs text-gray-400 mt-1">Hiroshima 5 Days Trip</p>
+    </header>
+
+    <!-- 內容容器 -->
+    <div class="max-w-md mx-auto relative min-h-screen">
+
+        <!-- 1. 行程頁面 (Itinerary) -->
+        <main id="view-itinerary" class="tab-view px-4">
+            
+            <!-- 日期切換 Tabs (Sticky: 黏在頂部) -->
+            <div class="sticky top-0 z-40 bg-gray-50/95 backdrop-blur-sm pt-2 pb-4 -mx-4 px-4 border-b border-gray-200 shadow-sm">
+                <div class="flex justify-between items-center gap-2" id="day-tabs-container">
+                    <!-- 由 JS 生成按鈕 -->
+                </div>
+            </div>
+
+            <!-- 行程內容區 -->
+            <div id="day-content-container" class="mt-6">
+                <!-- 由 JS 生成內容 -->
+            </div>
+        </main>
+
+        <!-- 2. 資訊頁面 (Info) -->
+        <main id="view-info" class="tab-view hidden px-4 pt-6 space-y-6">
+            
+            <div class="flat-card p-5">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center text-lg">
+                    <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded mr-2 text-xs font-bold">FLIGHT</span> 航班資訊
+                </h3>
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center border-b border-gray-100 pb-4">
+                        <div class="w-full">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-gray-400 text-xs font-medium bg-gray-100 px-2 py-0.5 rounded">去程 12/5</span>
+                                <span class="text-xs text-gray-400">CI 112</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="text-center">
+                                    <span class="block text-2xl font-bold text-gray-800">07:00</span>
+                                    <span class="text-xs font-bold text-gray-500">TPE</span>
+                                </div>
+                                <div class="flex-1 px-4 flex flex-col items-center">
+                                    <span class="text-gray-300 text-xs mb-1">2h 15m</span>
+                                    <div class="w-full h-px bg-gray-300 relative">
+                                        <div class="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-1 bg-gray-300 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <span class="block text-2xl font-bold text-gray-800">10:15</span>
+                                    <span class="text-xs font-bold text-gray-500">HIJ</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="w-full">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-gray-400 text-xs font-medium bg-gray-100 px-2 py-0.5 rounded">回程 12/9</span>
+                                <span class="text-xs text-gray-400">CI 113</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="text-center">
+                                    <span class="block text-2xl font-bold text-gray-800">11:15</span>
+                                    <span class="text-xs font-bold text-gray-500">HIJ</span>
+                                </div>
+                                <div class="flex-1 px-4 flex flex-col items-center">
+                                    <span class="text-gray-300 text-xs mb-1">2h 55m</span>
+                                    <div class="w-full h-px bg-gray-300 relative">
+                                        <div class="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-1 bg-gray-300 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <span class="block text-2xl font-bold text-gray-800">13:10</span>
+                                    <span class="text-xs font-bold text-gray-500">TPE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flat-card p-5">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center text-lg">
+                    <span class="bg-indigo-100 text-indigo-600 px-2 py-1 rounded mr-2 text-xs font-bold">HOTEL</span> 住宿資訊
+                </h3>
+                <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-100">
+                    <p class="font-bold text-gray-800 text-lg">東橫INN 廣島站前大橋南</p>
+                    <p class="text-xs text-gray-500 mt-1 font-mono">Toyoko Inn Hiroshima Ekimae Ohashi Minami</p>
+                    <div class="mt-3 flex gap-2">
+                        <span class="text-xs bg-white border border-gray-200 px-2 py-1 rounded text-gray-500">Check-in 15:00</span>
+                        <span class="text-xs bg-white border border-gray-200 px-2 py-1 rounded text-gray-500">含早餐</span>
+                    </div>
+                </div>
+                <a href="https://maps.app.goo.gl/t1k5Qv5FmQ2J7FwD8" target="_blank" class="flex items-center justify-center w-full bg-blue-600 text-white py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                    開啟 Google Map 導航
+                </a>
+            </div>
+        </main>
+
+        <!-- 3. 準備頁面 (Prep) -->
+        <main id="view-prep" class="tab-view hidden px-4 pt-6 space-y-6">
+            
+            <div class="flat-card p-5 border-l-4 border-red-500 relative overflow-hidden">
+                <div class="absolute right-0 top-0 opacity-10 transform translate-x-2 -translate-y-2">
+                    <svg class="w-24 h-24 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                </div>
+                <h3 class="font-bold text-gray-800 mb-4 text-lg">緊急聯絡</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm relative z-10">
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <span class="block text-gray-400 text-xs mb-1">警察 (Police)</span>
+                        <a href="tel:110" class="font-mono font-bold text-xl text-gray-800">110</a>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <span class="block text-gray-400 text-xs mb-1">救護/火警 (Fire)</span>
+                        <a href="tel:119" class="font-mono font-bold text-xl text-gray-800">119</a>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg border border-red-100 col-span-2">
+                        <span class="block text-red-400 text-xs mb-1">駐大阪辦事處 (緊急)</span>
+                        <a href="tel:+819087944568" class="font-mono font-bold text-xl text-red-600">090-8794-4568</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flat-card p-5">
+                <h3 class="font-bold text-gray-800 mb-4 text-lg">行李清單 Check</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-center group cursor-pointer">
+                        <input type="checkbox" id="c1" class="peer w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <label for="c1" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">護照 (有效期限內)</label>
+                    </li>
+                    <li class="flex items-center group cursor-pointer">
+                        <input type="checkbox" id="c2" class="peer w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <label for="c2" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">Visit Japan Web QR Code</label>
+                    </li>
+                    <li class="flex items-center group cursor-pointer">
+                        <input type="checkbox" id="c3" class="peer w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <label for="c3" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">日幣現金 / 信用卡 / 交通卡</label>
+                    </li>
+                    <li class="flex items-center group cursor-pointer">
+                        <input type="checkbox" id="c4" class="peer w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <label for="c4" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">網卡 / Wi-Fi 機</label>
+                    </li>
+                    <li class="flex items-center group cursor-pointer">
+                        <input type="checkbox" id="c5" class="peer w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <label for="c5" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">行動電源 / 充電線</label>
+                    </li>
+                    <li class="flex items-center group cursor-pointer">
+                        <input type="checkbox" id="c6" class="peer w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <label for="c6" class="ml-3 text-sm text-gray-600 peer-checked:text-gray-400 peer-checked:line-through cursor-pointer select-none">轉接頭 (日本雙孔扁插)</label>
+                    </li>
+                </ul>
+            </div>
+        </main>
+
+         <!-- 4. 指南頁面 (Guide) -->
+        <main id="view-guide" class="tab-view hidden px-4 pt-6 space-y-6">
+            <!-- 購物指南 -->
+             <div class="flat-card overflow-hidden">
+                <div class="bg-gradient-to-r from-orange-50 to-white p-4 border-b border-orange-100">
+                    <h3 class="font-bold text-orange-800 text-lg">必買伴手禮</h3>
+                </div>
+                <div class="p-5 text-sm space-y-4">
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 bg-orange-100 text-orange-600 rounded-lg w-8 h-8 flex items-center justify-center font-bold text-sm mr-3">1</span>
+                        <div><strong class="text-gray-800 text-base block mb-1">紅葉饅頭</strong><span class="text-gray-500 leading-relaxed">廣島最經典伴手禮，除了紅豆餡，還有奶油、巧克力甚至炸紅葉饅頭等多種吃法。</span></div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 bg-orange-100 text-orange-600 rounded-lg w-8 h-8 flex items-center justify-center font-bold text-sm mr-3">2</span>
+                        <div><strong class="text-gray-800 text-base block mb-1">瀨戶內檸檬蛋糕</strong><span class="text-gray-500 leading-relaxed">廣島是日本檸檬產量第一，檸檬蛋糕酸甜清爽，外型可愛，非常適合送禮。</span></div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 bg-orange-100 text-orange-600 rounded-lg w-8 h-8 flex items-center justify-center font-bold text-sm mr-3">3</span>
+                        <div><strong class="text-gray-800 text-base block mb-1">牡蠣醬油海苔</strong><span class="text-gray-500 leading-relaxed">廣島牡蠣精華濃縮在海苔中，鮮味十足，是搭配白飯的神物。</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 衣著建議 -->
+             <div class="flat-card overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-white p-4 border-b border-blue-100">
+                    <h3 class="font-bold text-blue-800 text-lg">12月衣著建議</h3>
+                </div>
+                <div class="p-5 text-sm text-gray-600">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-2">🌡️</span>
+                        <span class="font-medium">平均氣溫 5°C ~ 12°C</span>
+                    </div>
+                    <ul class="list-disc pl-5 mt-2 space-y-2 leading-relaxed">
+                        <li><strong>洋蔥式穿搭：</strong>日本室內、電車暖氣很強，建議內穿發熱衣+毛衣，外搭一件防風保暖好穿脫的大衣或羽絨外套。</li>
+                        <li><strong>防風配件：：</strong>宮島、尾道等海邊景點風大體感溫度低，務必攜帶圍巾、毛帽或耳罩。</li>
+                        <li><strong>好走的鞋：：</strong>本次行程包含神社、爬坡(尾道)，請務必穿著舒適好走的球鞋。</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- 底部導航列 -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center pb- safe-area-bottom z-30 h-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <button class="nav-btn active flex flex-col items-center justify-center w-full h-full" onclick="switchMainTab('itinerary')">
+            <svg class="w-6 h-6 mb-1 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <span class="text-[10px] font-bold">行程</span>
+        </button>
+        <button class="nav-btn flex flex-col items-center justify-center w-full h-full" onclick="switchMainTab('info')">
+            <svg class="w-6 h-6 mb-1 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-bold">資訊</span>
+        </button>
+        <button class="nav-btn flex flex-col items-center justify-center w-full h-full" onclick="switchMainTab('prep')">
+            <svg class="w-6 h-6 mb-1 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-bold">準備</span>
+        </button>
+        <button class="nav-btn flex flex-col items-center justify-center w-full h-full" onclick="switchMainTab('guide')">
+            <svg class="w-6 h-6 mb-1 nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            <span class="text-[10px] font-bold">指南</span>
+        </button>
+    </nav>
+
+    <!-- 景點介紹 Modal 視窗 -->
+    <div id="details-modal" class="modal hidden" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4 border-b pb-2"></h3>
+            <div id="modal-body" class="text-sm text-gray-700 leading-relaxed space-y-4">
+                <!-- 內容由 JS 填充 -->
+            </div>
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 rounded-full bg-gray-50 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 行程資料 (已將所有物流資訊移至主體顯示，景點故事保留在詳細介紹)
+        const itineraryData = [
+            {
+                day: 1, dayLabel: 'D1', date: '12/5', location: '廣島市區',
+                events: [
+                    { time: '02:30', title: '交通：機場接送', type: 'transport', desc: '汐止 → 桃園機場' },
+                    { time: '03:50', title: '桃園機場 第2航廈', type: 'misc', desc: 'Check-in / 出境手續' },
+                    { time: '07:00', end: '10:15', title: '航班 CI112', type: 'transport', desc: 'TPE → HIJ' },
+                    { time: '10:15', title: '廣島機場', type: 'misc', desc: '入境手續' },
+                    { 
+                        time: '10:40', 
+                        title: '【機場巴士】廣島空港 → 廣島駅新幹線口', 
+                        type: 'transport', 
+                        desc: [
+                            '🚌 乘車地點：廣島機場巴士【2號月台】',
+                            '💰 票價：¥1500',
+                            '⏳ 班次：約15分一班',
+                            '💡 備註：前門上車'
+                        ].join('\n')
+                    },
+                    { time: '11:30', title: '廣島駅新幹線口', type: 'misc', desc: '抵達廣島車站' },
+                    { 
+                        time: '11:45', 
+                        title: '午餐：廣島車站', 
+                        type: 'meal', 
+                        desc: [
+                            '📍 地點：minamoa / ekie',
+                            '1F 尾道拉麵',
+                            '2F SOUP CURRY KING 湯咖哩',
+                            '6F 叙々苑 (燒肉) 🕑 11:00-22:00',
+                            '6F 炭焼牛たん東山 雅 (仙台牛舌) 🕑 11:00-22:00'
+                        ].join('\n')
+                    },
+                    { 
+                        time: '13:10', 
+                        title: '廣島車站周邊購物', 
+                        type: 'misc', 
+                        desc: [
+                            'ekie 2F 寶可夢中心',
+                            'minamoa 2F 北星巴克',
+                            'minamoa 4F 3COINS'
+                        ].join('\n')
+                    },
+                    { time: '14:45', title: '交通：步行', type: 'transport', desc: '往東橫INN方向 (約7分鐘)' },
+                    { time: '15:00', title: 'Check-in', type: 'hotel', desc: '東橫INN 廣島站前大橋南' },
+                    { 
+                        time: '15:30', 
+                        title: '交通：前往和平公園', 
+                        type: 'transport', 
+                        desc: [
+                            '🚌 公車 24/25 或 廣電前往和平紀念公園周邊。',
+                            '💰 車資：¥240',
+                            '路線選擇：',
+                            '。公車24：廣島站 6號月台 → 和平紀念公園 (23分)',
+                            '。公車25：稻荷町（廣島）2號月台 → 和平紀念公園 (20分)',
+                            '。廣電：稻荷町（廣島） → 袋町 (24分)'
+                        ].join('\n')
+                    },
+                    { 
+                        time: '16:00', 
+                        title: '廣島和平公園', 
+                        type: 'spot',
+                        items: [
+                            { 
+                                name: '廣島和平紀念資料館', 
+                                mapQuery: '廣島和平紀念資料館',
+                                logistics: [
+                                    '💰 門票：成人¥200 / 65歲以上¥100',
+                                    '🕑 營業時間：7:30 - 18:00',
+                                    '💡 備註：12月至2月特定時段需在線購票，售票至16:30'
+                                ],
+                                details: '由丹下健三設計，展示了原爆的慘痛歷史與遺物，目的是向世人傳達核武的可怕並祈求世界和平。館內展示內容震撼人心，是廣島最重要的歷史場所。'
+                            },
+                            { 
+                                name: '廣島原爆圓頂館', 
+                                mapQuery: '原爆圓頂館',
+                                logistics: [
+                                    '💰 門票：免費 (室外景點)',
+                                    '🕑 點燈時間：20:00 至 0:00',
+                                    '🌐 AR連結: https://peace-tourism.com/description.html',
+                                    '💡 備註：1996年12月登錄為世界遺產。'
+                                ],
+                                details: '前身為廣島縣產業獎勵館，是少數在原爆中心附近沒有完全倒塌的建築。它保留了當時被轟炸後的殘破原貌，作為世界文化遺產，無聲地訴說著戰爭的殘酷。' 
+                            },
+                            { 
+                                name: '和平紀念公園', 
+                                mapQuery: '廣島和平紀念公園',
+                                logistics: [
+                                    '💰 門票：免費 (戶外空間)',
+                                    '🕑 營業時間：全天開放'
+                                ],
+                                details: '位於元安川與本川之間的沙洲上，園內有許多紀念碑，包括「原爆死没者慰靈碑」與「和平之鐘」，是市民休憩與祈禱和平的聖地。'
+                            }
+                        ]
+                    },
+                    { time: '18:30', title: '晚餐：松屋', type: 'meal', desc: '廣島本通商店街附近，或自由選擇' },
+                    { 
+                        time: '19:30', 
+                        title: '廣島本通商店街', 
+                        type: 'misc', 
+                        desc: [
+                            'LOFT、Seria 🕙 10:00–19:30',
+                            '大創、UNIQLO 🕙 10:30–20:00',
+                            'PARCO 🕙 10:00–20:30',
+                            '唐吉軻德 🕙 10:00–05:00'
+                        ].join('\n')
+                    },
+                    { 
+                        time: '20:30', 
+                        title: '交通：返回飯店', 
+                        type: 'transport', 
+                        desc: [
+                            '💰 車資：¥240',
+                            '路線選擇：',
+                            '。廣電：八丁堀（廣島）→稻荷町（廣島），再步行4分 (12分)',
+                            '。公車：八丁堀→廣島站，再步行4分 (13分)'
+                        ].join('\n')
+                    },
+                ]
+            },
+            {
+                day: 2, dayLabel: 'D2', date: '12/6', location: '廣島/吳市',
+                events: [
+                    { 
+                        time: '09:00', 
+                        title: '廣島城及周邊', 
+                        type: 'spot',
+                        items: [
+                            { 
+                                name: '廣島城 (鯉城)', 
+                                mapQuery: '廣島城',
+                                logistics: [
+                                    '💰 門票：天守閣 ¥370',
+                                    '🕑 營業時間：9:00 - 17:00 (12/10-3/31)',
+                                ],
+                                details: '別名「鯉城」，由毛利輝元建於1589年。雖然天守閣在原爆中倒塌，但後來以鋼筋混凝土重建。現在內部是介紹武家文化的歷史博物館，頂樓可眺望市區。'
+                            },
+                            { 
+                                name: '廣島護國神社', 
+                                mapQuery: '廣島護國神社',
+                                logistics: ['💰 門票：免費', '🕑 營業時間：全天開放'],
+                                details: '位於廣島城內，是廣島鯉魚隊每年必來祈求勝利的神社，因此以「鯉魚御守」聞名，也是當地新年參拜人數最多的神社。'
+                            }
+                        ]
+                    },
+                    { time: '11:45', title: '午餐：廣島車站 6F', type: 'meal', desc: '炭焼牛たん東山 雅 (仙台牛舌)' },
+                    { 
+                        time: '13:00', 
+                        title: '交通：JR山陽本線 → 吳市', 
+                        type: 'transport', 
+                        desc: '約30分鐘，下車後建議先確認吳灣船艦夕陽船班報名狀況' 
+                    },
+                    { 
+                        time: '14:00', 
+                        title: '吳市博物館群', 
+                        type: 'spot',
+                        items: [
+                            { 
+                                name: '大和博物館', 
+                                mapQuery: '大和博物館',
+                                logistics: [
+                                    '💰 門票：¥500', 
+                                    '🕑 營業時間：9:00 - 18:00 (週二休館)'
+                                ],
+                                details: '吳市曾是東洋第一軍港。館內展示了鎮館之寶：全長26.3公尺的「1/10 戰艦大和號」模型，細節精緻逼真，讓人感受到當時造船技術的宏偉。'
+                            },
+                            { 
+                                name: '海上自衛隊吳史料館 (鐵鯨館)', 
+                                mapQuery: '海上自衛隊吳史料館',
+                                logistics: ['💰 門票：免費', '🕑 營業時間：9:00 - 17:00 (週二休館)'],
+                                details: '別名「鐵鯨館」，是日本唯一展示真實退役潛水艇（秋潮號）的博物館。您可以實際進入潛水艇內部參觀，體驗船員的生活空間，非常難得！'
+                            }
+                        ]
+                    },
+                    { 
+                        time: '17:00', 
+                        title: '吳灣船艦巡禮', 
+                        type: 'spot', 
+                        items: [{
+                            name: '吳灣船艦巡禮',
+                            mapQuery: '吳灣艦船めぐり',
+                            logistics: [
+                                '💰 船票：¥1500 (視船班而定)',
+                                '🕑 夕陽航班：約16:00 (需預先確認)'
+                            ],
+                            details: '搭乘遊覽船從海上近距離觀看海上自衛隊的現役潛水艇與護衛艦，魄力十足。若參加夕陽航班，還有機會看到自衛艦降旗儀式（ラッパ演奏）。'
+                        }]
+                    },
+                    { 
+                        time: '18:00', 
+                        title: '晚餐/購物 (Youme Town 吳店)', 
+                        type: 'meal', 
+                        desc: [
+                            '🍴 晚餐：定食屋百菜旬 (3F)',
+                            '🛍️ 購物：Uniqlo、Seria (1-2F)'
+                        ].join('\n')
+                    },
+                    { time: '20:00', title: '交通：JR山陽本線 → 廣島', type: 'transport', desc: '返回廣島市區' }
+                ]
+            },
+            {
+                day: 3, dayLabel: 'D3', date: '12/7', location: '尾道/三原',
+                events: [
+                    { time: '08:48', title: '交通：山陽本線 廣島 → 尾道', type: 'transport', desc: '約1小時40分' },
+                    { time: '10:45', title: '尾道本通商店街', type: 'misc', desc: '感受懷舊氛圍' },
+                    { time: '11:30', title: '午餐：尾道拉麵 / 小野貓', type: 'meal', desc: '品嚐當地特色拉麵或咖啡廳' },
+                    { time: '13:00', title: '交通：千光寺纜車', type: 'transport', desc: '單程 ¥320 / 來回 ¥500' },
+                    { 
+                        time: '13:30', 
+                        title: '尾道文學之道', 
+                        type: 'spot',
+                        items: [
+                            { 
+                                name: '千光寺', 
+                                mapQuery: '千光寺',
+                                logistics: ['💰 門票：免費', '🕑 營業時間：6:00 - 17:00'],
+                                details: '依山而建的古寺，其中的「赤堂」與巨大的「玉之岩」是象徵。這裡視野極佳，可以俯瞰尾道水道與瀨戶內海的絕美景色，也是戀人的聖地。'
+                            },
+                            { 
+                                name: '貓之細道', 
+                                mapQuery: '貓の細道',
+                                logistics: ['💰 門票：免費', '💡 備註：尋找藝術家創作的「福石貓」'],
+                                details: '一條蜿蜒的坡道小徑，沿途藏著許多由藝術家園山春二創作的「福石貓」。這裡充滿懷舊氛圍，還有許多真正的貓咪出沒，是貓奴必訪的療癒景點。'
+                            },
+                             { 
+                                name: '尾道市立美術館', 
+                                mapQuery: '尾道市立美術館',
+                                logistics: ['💰 門票：¥300 (常設展)', '🕑 營業時間：9:00 - 17:00 (週一休館)'],
+                                details: '位於千光寺公園內，由建築大師安藤忠雄設計改建。最著名的是曾經有兩隻貓咪「Ken & Go」試圖闖入美術館與警衛對峙的可愛畫面，紅遍全球。'
+                            }
+                        ]
+                    },
+                    { time: '17:03', title: '交通：山陽本線 尾道 → 三原', type: 'transport', desc: '車程約15分鐘' },
+                    { 
+                        time: '17:20', 
+                        title: '三原城跡', 
+                        type: 'spot',
+                        items: [{ 
+                            name: '三原城跡', 
+                            mapQuery: '三原城跡',
+                            logistics: ['💰 門票：免費', '💡 備註：天守台石垣與車站共構'],
+                            details: '由小早川隆景所建，曾經是浮在海上的水軍城。現在天守台的石垣遺跡就直接與三原車站合為一體，是個非常獨特的「車站城」。'
+                        }]
+                    },
+                    { time: '17:30', title: '晚餐：和食処 登喜将', type: 'meal', desc: '三原站周邊餐廳' },
+                    { time: '19:13', title: '交通：JR山陽本線 三原 → 廣島', type: 'transport', desc: '返回廣島' },
+                ]
+            },
+            {
+                day: 4, dayLabel: 'D4', date: '12/8', location: '宮島',
+                events: [
+                    { time: '09:00', title: '交通：JR → 宮島口', type: 'transport', desc: 'JR山陽本線' },
+                    { time: '09:20', title: '交通：宮島渡輪', type: 'transport', desc: '單程 ¥180 (JR 或 松大汽船)' },
+                    { 
+                        time: '10:00', 
+                        title: '宮島自然與歷史', 
+                        type: 'spot',
+                        items: [
+                            { 
+                                name: '紅葉谷公園', 
+                                mapQuery: '紅葉谷公園',
+                                logistics: ['💰 門票：免費', '💡 備註：賞楓、野生鹿群出沒'],
+                                details: '位於彌山腳下，擁有約700棵楓樹。秋天時滿山火紅，景色如詩如畫，是日本著名的賞楓勝地，也是宮島鹿群常出沒的地方。'
+                            },
+                            { 
+                                name: '世界自然遺產-彌山', 
+                                mapQuery: '彌山',
+                                logistics: ['💰 門票：纜車來回 ¥2000', '💡 備註：包含不滅的「靈火堂」'],
+                                details: '宮島的主峰，保留了原始森林。山頂有「靈火堂」，供奉著弘法大師點燃後燃燒了1200年不滅的靈火，據說這火也是和平紀念公園「和平之燈」的火種來源。'
+                            }
+                        ]
+                    },
+                    { time: '12:00', title: '午餐：自備 (山上) / 表參道美食', type: 'meal', desc: '牡蠣、穴子飯、紅葉饅頭' },
+                    { time: '13:30', title: '嚴島神社表參道商店街', type: 'misc', desc: '購物、寄明信片' },
+                    { 
+                        time: '15:00', 
+                        title: '嚴島神社周邊', 
+                        type: 'spot',
+                        items: [
+                            { 
+                                name: '嚴島神社 & 大鳥居', 
+                                mapQuery: '嚴島神社',
+                                logistics: ['💰 門票：¥300 (神社本體)', '💡 備註：潮汐時間請事先確認'],
+                                details: '建於海上的神社，擁有1400年歷史，也是世界文化遺產。漲潮時大鳥居彷彿漂浮在海面上，夢幻無比；退潮時則可步行至鳥居下方觸摸柱腳。'
+                            },
+                            { 
+                                name: '豐國神社千疊閣', 
+                                mapQuery: '千疊閣',
+                                logistics: ['💰 門票：¥100', '🕑 營業時間：8:30 - 16:30'],
+                                details: '豐臣秀吉為了祭奠戰歿將士而建的大經堂，因面積寬達857疊榻榻米而得名。這是一座未完成的建築，沒有天花板與牆壁，通風極佳，充滿歷史滄桑感。'
+                            },
+                            { 
+                                name: '大聖院', 
+                                mapQuery: '大聖院',
+                                logistics: ['💰 門票：免費', '💡 備註：有「遍照窟」八十八所巡禮'],
+                                details: '宮島歷史最悠久的寺廟，與弘法大師淵源深厚。境內有「遍照窟」，內有四國八十八處靈場的砂，據說走一圈就能獲得遍路巡禮的功德，還有可愛的「愚癡聽聞地藏」。'
+                            }
+                        ]
+                    },
+                    { time: '18:00', title: '交通：宮島渡輪回廣島', type: 'transport' },
+                ]
+            },
+            {
+                day: 5, dayLabel: 'D5', date: '12/9', location: '返程',
+                events: [
+                    { time: '06:30', title: 'Check-out / 廣島新幹線口', type: 'hotel', desc: '退房後前往廣島車站新幹線口' },
+                    { time: '07:00', title: '交通：機場巴士 → 廣島機場', type: 'transport', desc: '約45-50分鐘' },
+                    { time: '11:15', end: '13:10', title: '航班 HIJ → TPE', type: 'transport', desc: '華航 CI113' }
+                ]
+            }
+        ];
+
+        // --- Functions ---
+
+        // 主 Tab 切換
+        window.switchMainTab = function(tabId) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            // 找出對應的按鈕加 active
+            const navMap = { 'itinerary': 0, 'info': 1, 'prep': 2, 'guide': 3 };
+            document.querySelectorAll('.nav-btn')[navMap[tabId]].classList.add('active');
+            
+            // 切換到其他頁面時，將捲動位置歸零
+            if (tabId !== 'itinerary') {
+                window.scrollTo(0,0);
+            }
+        };
+
+        window.openMap = function(query) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+        };
+
+        // 顯示景點介紹彈窗 (使用滑入動畫)
+        window.showDetailsModal = function(encodedDetails, title) {
+            try {
+                // Base64 解碼
+                const details = decodeURIComponent(escape(atob(encodedDetails)));
+                
+                // 簡易 Markdown 格式化：
+                // 1. 將 \n 轉換為 <br>
+                let formattedDetails = details.replace(/\n/g, '<br>');
+                // 2. 將 [Link Text](URL) 轉換為 HTML 連結
+                formattedDetails = formattedDetails.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+                // 3. 粗體字 **...**
+                formattedDetails = formattedDetails.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // 4. 水平線 ---
+                formattedDetails = formattedDetails.replace(/---/g, '<hr class="my-4 border-gray-200">');
+
+
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-body').innerHTML = formattedDetails;
+                
+                const modal = document.getElementById('details-modal');
+                modal.classList.remove('hidden');
+                // 使用 requestAnimationFrame 確保樣式已應用，然後觸發動畫
+                requestAnimationFrame(() => {
+                    modal.classList.add('is-open'); 
+                    document.body.style.overflow = 'hidden'; // 禁止背景捲動
+                });
+
+            } catch (e) {
+                console.error("Error decoding or rendering modal content:", e);
+            }
+        };
+
+        // 關閉景點介紹彈窗
+        window.closeModal = function() {
+            const modal = document.getElementById('details-modal');
+            modal.classList.remove('is-open');
+            // 在動畫結束後隱藏 modal
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = ''; // 恢復背景捲動
+            }, 300); // 這裡的 300ms 必須與 CSS transition-duration 一致
+        };
+
+
+        // 渲染行程
+        function renderItinerary(dayIndex) {
+            const container = document.getElementById('day-content-container');
+            const data = itineraryData[dayIndex];
+            
+            // Render Tabs (Day 1 - Day 5) - 使用 flex-1 實現平均分佈, 方形圓角設計
+            const tabContainer = document.getElementById('day-tabs-container');
+            tabContainer.innerHTML = itineraryData.map((d, idx) => `
+                <button onclick="renderItinerary(${idx})" 
+                    class="day-tab-btn flex-1 aspect-[1/0.9] rounded-xl flex flex-col items-center justify-center shadow-sm
+                           ${idx === dayIndex ? 'active' : 'inactive'}">
+                    <span class="text-xs font-medium mb-1 opacity-80">${d.date}</span>
+                    <span class="text-xl font-bold tracking-tight">${d.dayLabel}</span>
+                </button>
+            `).join('');
+
+            // Render Events
+            let html = `<div class="mb-5 text-sm font-medium text-gray-500 pl-2 flex items-center"><span class="mr-1">📍</span> ${data.location}</div>`;
+            
+            html += data.events.map((event, idx) => {
+                // 判斷類型顏色
+                let dotColor = 'bg-gray-300';
+                
+                if (event.type === 'transport') { dotColor = 'bg-blue-400'; }
+                else if (event.type === 'meal') { dotColor = 'bg-orange-400'; }
+                else if (event.type === 'spot') { dotColor = 'bg-red-500'; }
+                else if (event.type === 'hotel') { dotColor = 'bg-indigo-400'; }
+
+                // 內容區塊容器
+                let contentWrapperHtml = '';
+                
+                if (event.type === 'spot' && event.items) {
+                    // 多個景點合併顯示
+                    contentWrapperHtml = `
+                        <div class="mb-2 text-xs font-mono font-bold text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">${event.time}</div>
+                        <div class="space-y-4">
+                            ${event.items.map(item => {
+                                // 將 details 進行 Base64 編碼，以安全傳遞複雜字串給 JS 函數
+                                const encodedDetails = btoa(unescape(encodeURIComponent(item.details)));
+                                // 提取 logistics
+                                const logisticsHtml = item.logistics ? `<div class="logistics-list">${item.logistics.join('\n')}</div>` : '';
+
+                                return `
+                                <div class="bg-white rounded-xl p-4 flat-card border border-gray-100 shadow-sm relative overflow-hidden">
+                                    <div class="relative z-10">
+                                        <div class="font-bold text-gray-800 text-lg mb-2 flex justify-between items-start">
+                                            ${item.name}
+                                            <button onclick="openMap('${item.mapQuery || item.name}')" class="text-gray-400 hover:text-blue-500 p-1.5 rounded-full transition" aria-label="Open Map">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Logistical Details (New Requirement) -->
+                                        ${logisticsHtml}
+
+                                        <!-- 景點介紹按鈕 (開啟 Slide-Up Modal) -->
+                                        <button onclick="showDetailsModal('${encodedDetails}', '${item.name}')" 
+                                            class="mt-3 text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                                            詳細介紹
+                                        </button>
+                                    </div>
+                                </div>
+                            `;}).join('')}
+                        </div>
+                    `;
+                } else {
+                    // 一般單一事件 (交通、餐飲、購物等)
+                    // 對 desc 換行處理 (New Requirement)
+                    const descHtml = event.desc ? `<div class="logistics-list">${event.desc}</div>` : '';
+
+                    contentWrapperHtml = `
+                        <div class="flat-card p-4 relative bg-white">
+                            <div class="text-xs font-mono font-bold text-gray-500 mb-1">${event.time}</div>
+                            <div class="font-bold text-gray-800 text-base">${event.title}</div>
+                            ${descHtml}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="timeline-item relative pl-6 pb-8 last:pb-0">
+                        <div class="timeline-line"></div>
+                        <!-- 圓點 -->
+                        <div class="absolute left-[2px] top-[28px] w-2.5 h-2.5 rounded-full ${dotColor} border-2 border-white box-content z-10 shadow-sm"></div>
+                        
+                        <!-- 內容本體 -->
+                        <div class="pl-6">
+                            ${contentWrapperHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+        window.renderItinerary = renderItinerary;
+
+        // Init: 預設顯示 Day 1
+        renderItinerary(0);
+
+    </script>
+</body>
+</html>
+
