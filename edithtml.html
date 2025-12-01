@@ -149,13 +149,33 @@
     <script>
         /**
          * 1. 儲存功能：將編輯器中的內容儲存為 .html 檔案並下載。
+         * 此版本優先將內容複製到剪貼板，然後嘗試觸發下載。
          */
         function saveHtmlFile() {
             const code = document.getElementById('htmlEditor').value;
             const filename = 'my_responsive_code.html';
-            // 使用 Blob 確保離線也能運作
-            const blob = new Blob([code], { type: 'text/html' });
             
+            // --- Step 1: 嘗試複製到剪貼板 (最可靠的離線備援) ---
+            const tempInput = document.createElement('textarea');
+            // 將內容寫入臨時 textarea 進行選取和複製
+            tempInput.value = code; 
+            // 隱藏元素以避免影響佈局
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px'; 
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            let copied = false;
+            try {
+                // 執行複製命令
+                copied = document.execCommand('copy');
+            } catch (err) {
+                console.error('Clipboard copy failed:', err);
+            }
+            document.body.removeChild(tempInput);
+            
+            // --- Step 2: 嘗試觸發檔案下載 (本地檔案 (file://) 模式下常失敗) ---
+            const blob = new Blob([code], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -163,21 +183,39 @@
             
             document.body.appendChild(a);
 
-            // 使用 setTimeout 確保下載操作在單獨的執行緒中運行，
-            // 這有助於規避部分移動瀏覽器對本地文件執行下載操作的安全限制。
             setTimeout(() => {
-                // 檢查是否為開啟本地檔案（file://）
-                if (window.location.protocol === 'file:') {
-                    showMessageBox('在 App 模式下，請檢查下載目錄是否有檔案。部分瀏覽器於離線模式下可能限制此功能。', 'text-red-500');
-                    // 為了最大化成功率，即使顯示警告，仍嘗試點擊
-                    try { a.click(); } catch (e) { console.error("Download failed:", e); }
-                } else {
+                let message = '';
+                let color = 'text-green-500';
+
+                // 嘗試點擊下載連結
+                try {
                     a.click();
-                    showMessageBox('成功儲存！檔案已下載至您的手機。', 'text-green-500');
+                    message = '檔案下載已嘗試。';
+                    
+                    // 如果同時成功複製
+                    if (copied) {
+                        message += ' 程式碼已成功複製到剪貼板！';
+                        color = 'text-green-500';
+                    } else {
+                        message += ' (複製失敗)';
+                        color = 'text-red-500';
+                    }
+                } catch (e) {
+                    // 下載失敗 (通常發生在 file:// 協定)
+                    if (copied) {
+                         message = '檔案下載失敗 (瀏覽器限制)。程式碼已成功複製到剪貼板！請手動貼到檔案。';
+                         color = 'text-primary-blue'; // 使用藍色或警告色
+                    } else {
+                         message = '下載與複製皆失敗。請檢查權限或使用其他瀏覽器。';
+                         color = 'text-red-500';
+                    }
+                    console.error("Download attempt failed:", e);
                 }
                 
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                showMessageBox(message, color);
+
             }, 0);
         }
         
@@ -301,7 +339,7 @@
                 onclick="saveHtmlFile()"
                 class="btn btn-save"
             >
-                💾 另存為 .html 檔案
+                💾 複製並嘗試下載
             </button>
         </div>
     </main>
