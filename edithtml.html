@@ -4,54 +4,150 @@
     <meta charset="UTF-8">
     <!-- 響應式設計的關鍵：確保網頁寬度與設備寬度一致 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>離線 HTML 編輯器 (新視窗預覽)</title>
-    <!-- 引入 Tailwind CSS CDN 以實現快速且響應式的設計 -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>離線 HTML 編輯器 (已移除 CDN)</title>
+    
+    <!-- 所有的樣式皆已內嵌，確保 100% 離線可用性 -->
     <style>
-        /* 設置 Inter 字體作為預設，提供良好的可讀性 */
+        /* CSS Reset & 基本佈局 */
         :root {
             font-family: 'Inter', sans-serif;
         }
-        /* 針對程式碼編輯區，使用等寬字體，方便閱讀 */
+        body {
+            background-color: #f3f4f6; /* bg-gray-100 */
+            min-height: 100vh;
+            padding: 16px; /* p-4 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .max-w-2xl {
+            max-width: 42rem; /* w-full max-w-2xl */
+        }
+        .flex-grow {
+            flex-grow: 1;
+        }
+        .space-y-4 > * + * {
+            margin-top: 1rem; /* space-y-4 */
+        }
+        
+        /* 標題樣式 */
+        .header h1 {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 800; /* font-extrabold */
+            color: #1f2937; /* text-gray-800 */
+            text-align: center;
+            margin-bottom: 0.25rem; /* mb-1 */
+        }
+        .header p {
+            font-size: 0.875rem; /* text-sm */
+            color: #6b7280; /* text-gray-500 */
+            text-align: center;
+        }
+
+        /* 程式碼編輯區樣式 */
         #htmlEditor {
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
             line-height: 1.4;
-            /* 在手機上給予足夠的編輯空間 */
             min-height: 50vh; 
+            width: 100%;
+            padding: 1rem; /* p-4 */
+            font-size: 0.875rem; /* text-sm */
+            border: 2px solid #d1d5db; /* border-2 border-gray-300 */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: all 150ms ease-in-out;
+            resize: vertical;
         }
-        /* 美化滾動條 */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        #htmlEditor:focus {
+            border-color: #3b82f6; /* focus:border-primary-blue */
+            outline: none;
+            box-shadow: 0 0 0 1px #3b82f6; /* focus:ring-1 focus:ring-primary-blue */
         }
-        ::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* 灰色 300 */
-            border-radius: 4px;
+
+        /* 按鈕容器樣式 */
+        .button-group {
+            display: flex;
+            gap: 1rem; /* space-x-4 */
+            width: 100%;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9; /* 灰色 100 */
+
+        /* 按鈕基礎樣式 */
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem; /* py-3 */
+            font-weight: 700; /* font-bold */
+            font-size: 1.125rem; /* text-lg */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-lg */
+            transition: all 150ms ease-in-out;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            line-height: 1.25;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 預覽按鈕樣式 (secondary-indigo) */
+        .btn-preview {
+            background-color: #6366f1;
+        }
+        .btn-preview:hover {
+            background-color: #4f46e5; /* hover:bg-indigo-600 */
+        }
+
+        /* 儲存按鈕樣式 (primary-blue) */
+        .btn-save {
+            background-color: #3b82f6;
+        }
+        .btn-save:hover {
+            background-color: #2563eb; /* hover:bg-blue-600 */
+        }
+
+        /* 訊息框樣式 */
+        .message-box {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, 0);
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            transition: all 300ms ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .message-box.visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+        .message-box p {
+            font-weight: 600; /* font-semibold */
+        }
+
+        /* 底部資訊 */
+        footer {
+            width: 100%;
+            max-width: 42rem;
+            margin-top: 1rem;
+            font-size: 0.75rem; /* text-xs */
+            color: #9ca3af; /* text-gray-400 */
+            text-align: center;
         }
     </style>
     <script>
-        // 設定 Tailwind CSS 配置
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary-blue': '#3b82f6', // 藍色 500 (儲存按鈕)
-                        'secondary-indigo': '#6366f1' // 靛藍色 500 (預覽按鈕)
-                    }
-                }
-            }
-        }
-
         /**
          * 1. 儲存功能：將編輯器中的內容儲存為 .html 檔案並下載。
          */
         function saveHtmlFile() {
             const code = document.getElementById('htmlEditor').value;
             const filename = 'my_responsive_code.html';
+            // 使用 Blob 確保離線也能運作
             const blob = new Blob([code], { type: 'text/html' });
             
             const url = URL.createObjectURL(blob);
@@ -103,44 +199,45 @@
         }
 
         /**
-         * 3. 訊息提示框 (取代 alert)
+         * 3. 訊息提示框 (取代 alert) - 樣式已更新以配合內嵌 CSS
          */
         function showMessageBox(message, colorClass = 'text-primary-blue') {
             const messageBox = document.getElementById('messageBox');
             const messageText = document.getElementById('messageText');
             
-            // 重設顏色並添加新的訊息顏色
-            messageText.className = `font-semibold ${colorClass}`;
+            // 處理訊息顏色 (雖然 CSS 樣式已內嵌，這裡仍保留 className 邏輯以變換顏色)
+            let color = '#3b82f6'; // primary-blue
+            if (colorClass.includes('green-500')) { color = '#10b981'; }
+            if (colorClass.includes('red-500')) { color = '#ef4444'; }
+            
+            messageText.style.color = color;
             messageText.textContent = message;
             
             // 讓訊息框可見
+            messageBox.classList.add('visible');
             messageBox.classList.remove('opacity-0', 'pointer-events-none');
-            messageBox.classList.add('translate-y-0');
+
 
             // 設置計時器，在幾秒後自動隱藏訊息框
             clearTimeout(messageBox.timer);
             messageBox.timer = setTimeout(() => {
-                messageBox.classList.remove('translate-y-0');
+                messageBox.classList.remove('visible');
                 messageBox.classList.add('opacity-0', 'pointer-events-none');
             }, 3000); 
         }
     </script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
+<body>
 
     <!-- 頂部標題和說明 -->
-    <header class="w-full max-w-2xl mb-4">
-        <h1 class="text-3xl font-extrabold text-gray-800 text-center mb-1">
-            💻 離線程式碼編輯器
-        </h1>
-        <p class="text-sm text-gray-500 text-center">
-            貼上 HTML 程式碼，可預覽於新視窗並離線儲存。
-        </p>
+    <header class="header w-full max-w-2xl mb-4">
+        <h1>💻 離線程式碼編輯器</h1>
+        <p>貼上 HTML 程式碼，可預覽於新視窗並離線儲存。</p>
     </header>
 
     <!-- 訊息提示框 (取代 alert) - 採用更友善的動畫效果 -->
-    <div id="messageBox" class="fixed top-0 left-1/2 transform -translate-x-1/2 mt-4 p-3 bg-white rounded-lg shadow-xl z-50 transition-all duration-300 opacity-0 pointer-events-none">
-        <p id="messageText" class="text-primary-blue font-semibold">訊息</p>
+    <div id="messageBox" class="message-box">
+        <p id="messageText" style="color:#3b82f6;">訊息</p>
     </div>
 
     <!-- 主操作區域 -->
@@ -150,16 +247,15 @@
         <textarea 
             id="htmlEditor" 
             placeholder="請在這裡貼上您的 HTML 程式碼..."
-            class="w-full flex-grow p-4 text-sm border-2 border-gray-300 rounded-lg focus:border-primary-blue focus:ring-1 focus:ring-primary-blue transition duration-150 resize-y"
-            rows="20"
         >&lt;!DOCTYPE html>
 &lt;html lang="zh-Hant">
 &lt;head>
     &lt;meta charset="UTF-8">
     &lt;meta name="viewport" content="width=device-width, initial-scale=1.0">
     &lt;title>我的 RWD 網頁預覽&lt;/title>
+    &lt;!-- 這裡的樣式是您編輯後會預覽的內容 --&gt;
     &lt;style>
-        body { font-family: 'Inter', sans-serif; padding: 20px; text-align: center; background-color: #f0f4f8; }
+        body { font-family: sans-serif; padding: 20px; text-align: center; background-color: #f0f4f8; }
         .card { 
             background: white; padding: 20px; border-radius: 12px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
@@ -170,23 +266,23 @@
 &lt;body>
     &lt;div class="card">
         &lt;h1 style="color: #6366f1;">新視窗預覽的內容&lt;/h1>
-        &lt;p>這段內容將在您點擊「預覽畫面」按鈕後，彈出到一個全新的分頁中呈現！&lt;/p>
-        &lt;p>由於是在新分頁中開啟，因此能確保它完全以網頁的方式獨立運作。&lt;/p>
+        &lt;p>這個編輯器現在已經是 100% 離線可用了！&lt;/p>
+        &lt;p>請關閉網路後再試試看「儲存檔案」功能。&lt;/p>
     &lt;/div>
 &lt;/body>
 &lt;/html></textarea>
 
-        <!-- 操作按鈕 - 左右排列，優化手機空間 -->
-        <div class="flex space-x-4">
+        <!-- 操作按鈕 - 左右排列 -->
+        <div class="button-group">
             <button 
                 onclick="previewHtml()"
-                class="flex-1 py-3 bg-secondary-indigo text-white font-bold text-lg rounded-xl shadow-lg hover:bg-indigo-600 transition duration-150 active:scale-95 transform tracking-wider"
+                class="btn btn-preview"
             >
                 👀 預覽畫面 (新視窗)
             </button>
             <button 
                 onclick="saveHtmlFile()"
-                class="flex-1 py-3 bg-primary-blue text-white font-bold text-lg rounded-xl shadow-lg hover:bg-blue-600 transition duration-150 active:scale-95 transform tracking-wider"
+                class="btn btn-save"
             >
                 💾 另存為 .html 檔案
             </button>
@@ -194,10 +290,9 @@
     </main>
 
     <!-- 底部資訊 (可選) -->
-    <footer class="w-full max-w-2xl mt-4 text-xs text-gray-400 text-center">
-        此編輯器完全在瀏覽器中運作，無需網路連線或資料庫。
+    <footer>
+        此編輯器現在是 100% 離線版本，無需網路連線或資料庫。
     </footer>
 
 </body>
 </html>
-
