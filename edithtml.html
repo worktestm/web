@@ -2,18 +2,10 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <!-- 響應式設計的關鍵：確保網頁寬度與設備寬度一致 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 響應式設計的關鍵：確保網頁寬度與設備寬度一致 --><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>離線 HTML 編輯器 (App 模式)</title>
     
-    <!-- PWA/Web App 模式設定 (讓網頁可新增至主畫面並以App模式運行) -->
-    <meta name="theme-color" content="#3b82f6"> <!-- Android Chrome 狀態列顏色 -->
-    <meta name="apple-mobile-web-app-capable" content="yes"> <!-- iOS 啟用全螢幕模式 -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <!-- iOS 狀態列樣式 -->
-    <meta name="apple-mobile-web-app-title" content="離線編輯器"> <!-- iOS 桌面名稱 -->
-    
-    <!-- 所有的樣式皆已內嵌，確保 100% 離線可用性 -->
-    <style>
+    <!-- PWA/Web App 模式設定 (讓網頁可新增至主畫面並以App模式運行) --><meta name="theme-color" content="#3b82f6"> <!-- Android Chrome 狀態列顏色 --><meta name="apple-mobile-web-app-capable" content="yes"> <!-- iOS 啟用全螢幕模式 --><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> <!-- iOS 狀態列樣式 --><meta name="apple-mobile-web-app-title" content="離線編輯器"> <!-- iOS 桌面名稱 --><!-- 所有的樣式皆已內嵌，確保 100% 離線可用性 --><style>
         /* CSS Reset & 基本佈局 */
         :root {
             font-family: 'Inter', sans-serif;
@@ -21,13 +13,20 @@
         body {
             background-color: #f3f4f6; /* bg-gray-100 */
             min-height: 100vh;
-            padding: 16px; /* p-4 */
+            /* 調整 padding，讓內容在小螢幕上更貼邊，但仍有間距 */
+            padding: 10px; 
             display: flex;
             flex-direction: column;
             align-items: center;
+            /* 移除 max-width 讓 body 在小螢幕上可以佔滿，內容再限制 */
         }
-        .max-w-2xl {
-            max-width: 42rem; /* w-full max-w-2xl */
+        /* 增加一個容器來限制內容的最大寬度，確保 RWD */
+        .container {
+            width: 100%;
+            max-width: 600px; /* 針對手機和平板的常用最大寬度 */
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* 讓容器可以伸展 */
         }
         .flex-grow {
             flex-grow: 1;
@@ -56,7 +55,7 @@
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
             line-height: 1.4;
             min-height: 50vh; 
-            width: 100%;
+            width: 100%; /* 確保佔滿父容器寬度 */
             padding: 1rem; /* p-4 */
             font-size: 0.875rem; /* text-sm */
             border: 2px solid #d1d5db; /* border-2 border-gray-300 */
@@ -73,16 +72,17 @@
         /* 按鈕容器樣式 */
         .button-group {
             display: flex;
-            gap: 1rem; /* space-x-4 */
+            /* 調整按鈕間距以適應小螢幕 */
+            gap: 0.75rem; 
             width: 100%;
         }
 
         /* 按鈕基礎樣式 */
         .btn {
             flex: 1;
-            padding: 0.75rem 1rem; /* py-3 */
+            padding: 0.75rem 0.5rem; /* py-3, 調整左右 padding */
             font-weight: 700; /* font-bold */
-            font-size: 1.125rem; /* text-lg */
+            font-size: 1rem; /* 稍微縮小字體以適應小螢幕 */
             border-radius: 0.75rem; /* rounded-xl */
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-lg */
             transition: all 150ms ease-in-out;
@@ -91,6 +91,7 @@
             cursor: pointer;
             border: none;
             line-height: 1.25;
+            white-space: nowrap; /* 防止按鈕文字換行 */
         }
         .btn:active {
             transform: scale(0.95);
@@ -127,6 +128,8 @@
             transition: all 300ms ease-in-out;
             opacity: 0;
             pointer-events: none;
+            max-width: 90%; /* 限制訊息框寬度 */
+            text-align: center;
         }
         .message-box.visible {
             opacity: 1;
@@ -149,33 +152,13 @@
     <script>
         /**
          * 1. 儲存功能：將編輯器中的內容儲存為 .html 檔案並下載。
-         * 此版本優先將內容複製到剪貼板，然後嘗試觸發下載。
          */
         function saveHtmlFile() {
             const code = document.getElementById('htmlEditor').value;
             const filename = 'my_responsive_code.html';
-            
-            // --- Step 1: 嘗試複製到剪貼板 (最可靠的離線備援) ---
-            const tempInput = document.createElement('textarea');
-            // 將內容寫入臨時 textarea 進行選取和複製
-            tempInput.value = code; 
-            // 隱藏元素以避免影響佈局
-            tempInput.style.position = 'absolute';
-            tempInput.style.left = '-9999px'; 
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            
-            let copied = false;
-            try {
-                // 執行複製命令
-                copied = document.execCommand('copy');
-            } catch (err) {
-                console.error('Clipboard copy failed:', err);
-            }
-            document.body.removeChild(tempInput);
-            
-            // --- Step 2: 嘗試觸發檔案下載 (本地檔案 (file://) 模式下常失敗) ---
+            // 使用 Blob 確保離線也能運作
             const blob = new Blob([code], { type: 'text/html' });
+            
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -183,39 +166,20 @@
             
             document.body.appendChild(a);
 
+            // 使用 setTimeout 確保下載操作在單獨的執行緒中運行，
+            // 這有助於規避部分移動瀏覽器對本地文件執行下載操作的安全限制。
             setTimeout(() => {
-                let message = '';
-                let color = 'text-green-500';
-
-                // 嘗試點擊下載連結
                 try {
                     a.click();
-                    message = '檔案下載已嘗試。';
-                    
-                    // 如果同時成功複製
-                    if (copied) {
-                        message += ' 程式碼已成功複製到剪貼板！';
-                        color = 'text-green-500';
-                    } else {
-                        message += ' (複製失敗)';
-                        color = 'text-red-500';
-                    }
+                    showMessageBox('成功儲存！檔案已下載至您的手機。', 'text-green-500');
                 } catch (e) {
-                    // 下載失敗 (通常發生在 file:// 協定)
-                    if (copied) {
-                         message = '檔案下載失敗 (瀏覽器限制)。程式碼已成功複製到剪貼板！請手動貼到檔案。';
-                         color = 'text-primary-blue'; // 使用藍色或警告色
-                    } else {
-                         message = '下載與複製皆失敗。請檢查權限或使用其他瀏覽器。';
-                         color = 'text-red-500';
-                    }
+                    // 如果下載失敗 (通常發生在 file:// 協定)
+                    showMessageBox('檔案下載失敗 (瀏覽器限制)。請檢查權限或使用其他瀏覽器。', 'text-red-500');
                     console.error("Download attempt failed:", e);
                 }
                 
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showMessageBox(message, color);
-
             }, 0);
         }
         
@@ -284,25 +248,22 @@
 </head>
 <body>
 
-    <!-- 頂部標題和說明 -->
-    <header class="header w-full max-w-2xl mb-4">
-        <h1>💻 離線程式碼編輯器</h1>
-        <p>貼上 HTML 程式碼，可預覽於新視窗並離線儲存。</p>
-    </header>
+    <!-- 頂部標題和說明 --><div class="container">
+        <header class="header w-full mb-4">
+            <h1>💻 離線程式碼編輯器</h1>
+            <p>貼上 HTML 程式碼，可預覽於新視窗並離線儲存。</p>
+        </header>
 
-    <!-- 訊息提示框 (取代 alert) - 採用更友善的動畫效果 -->
-    <div id="messageBox" class="message-box">
-        <p id="messageText" style="color:#3b82f6;">訊息</p>
-    </div>
+        <!-- 訊息提示框 (取代 alert) - 採用更友善的動畫效果 --><div id="messageBox" class="message-box">
+            <p id="messageText" style="color:#3b82f6;">訊息</p>
+        </div>
 
-    <!-- 主操作區域 -->
-    <main class="w-full max-w-2xl flex-grow flex flex-col space-y-4">
-        
-        <!-- 程式碼編輯區域 -->
-        <textarea 
-            id="htmlEditor" 
-            placeholder="請在這裡貼上您的 HTML 程式碼..."
-        >&lt;!DOCTYPE html>
+        <!-- 主操作區域 --><main class="w-full flex-grow flex flex-col space-y-4">
+            
+            <!-- 程式碼編輯區域 --><textarea 
+                id="htmlEditor" 
+                placeholder="請在這裡貼上您的 HTML 程式碼..."
+            >&lt;!DOCTYPE html>
 &lt;html lang="zh-Hant">
 &lt;head>
     &lt;meta charset="UTF-8">
@@ -327,27 +288,26 @@
 &lt;/body>
 &lt;/html></textarea>
 
-        <!-- 操作按鈕 - 左右排列 -->
-        <div class="button-group">
-            <button 
-                onclick="previewHtml()"
-                class="btn btn-preview"
-            >
-                👀 預覽畫面 (新視窗)
-            </button>
-            <button 
-                onclick="saveHtmlFile()"
-                class="btn btn-save"
-            >
-                💾 複製並嘗試下載
-            </button>
-        </div>
-    </main>
+            <!-- 操作按鈕 - 左右排列 --><div class="button-group">
+                <button 
+                    onclick="previewHtml()"
+                    class="btn btn-preview"
+                >
+                    👀 預覽畫面 (新視窗)
+                </button>
+                <button 
+                    onclick="saveHtmlFile()"
+                    class="btn btn-save"
+                >
+                    💾 另存為 .html 檔案
+                </button>
+            </div>
+        </main>
 
-    <!-- 底部資訊 (可選) -->
-    <footer>
-        此編輯器現在是 100% 離線版本，無需網路連線或資料庫。
-    </footer>
+        <!-- 底部資訊 (可選) --><footer>
+            此編輯器現在是 100% 離線版本，無需網路連線或資料庫。
+        </footer>
+    </div>
 
 </body>
 </html>
