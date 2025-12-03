@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>廣島五日遊行程表</title>
+    
+    <!-- Tailwind CSS (樣式庫) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM (核心庫) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (讓瀏覽器看懂 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* 手機版優化與安全區域設定 */
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 隱藏捲軸但保留功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* 確保主內容區域可以捲動 */
+        #main-content-scroll {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* iOS 滑動優化 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 h-screen w-screen overflow-hidden">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 內建圖示組件 (SVG Icons) ---
+        const IconBase = ({ children, className, size = 18 }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className}
+            >
+                {children}
+            </svg>
+        );
+
+        const MapPin = (props) => <IconBase {...props}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
+        const Briefcase = (props) => <IconBase {...props}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconBase>;
+        const Train = (props) => <IconBase {...props}><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const Calendar = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconBase>;
+        const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
+        const Navigation = (props) => <IconBase {...props}><polygon points="3 11 22 2 13 21 11 13 3 11"/></IconBase>;
+        const ExternalLink = (props) => <IconBase {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></IconBase>;
+        const Utensils = (props) => <IconBase {...props}><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></IconBase>;
+        const ShoppingBag = (props) => <IconBase {...props}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></IconBase>;
+        const Bus = (props) => <IconBase {...props}><rect width="14" height="16" x="5" y="2" rx="2"/><path d="M8 21h8"/><path d="M10 21v2"/><path d="M14 21v2"/><path d="M5 12h14"/><path d="M5 7h14"/></IconBase>;
+        const Ship = (props) => <IconBase {...props}><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.9 5.8 2.8 8"/><path d="M12 10V4"/><path d="M8 8v2"/><path d="M16 8v2"/></IconBase>;
+        const Plane = (props) => <IconBase {...props}><path d="M2 12h20"/><path d="M13 2l9 10-9 10"/></IconBase>;
+        const Qrcode = (props) => <IconBase {...props}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="12" y1="16" x2="16" y2="12" /><line x1="16" y1="16" x2="12" y2="12" /></IconBase>;
+
+
+        // --- 資料數據結構 (Data) ---
+        const tripData = [
+          {
+            day: 1,
+            date: "12/5 (五)",
+            title: "廣島抵達與和平紀念",
+            items: [
+              { time: "02:30", type: "transport", title: "機場接送 (汐止→桃機)", icon: <Bus className="w-4 h-4" />, details: ["汐止出發", "前往桃園機場"] },
+              { time: "03:50", type: "transport", title: "抵達 桃園機場 T2", icon: <Plane className="w-4 h-4" />, details: [] },
+              { time: "07:00", type: "transport", title: "華航 CI112 起飛", icon: <Plane className="w-4 h-4" />, details: ["桃園機場 T2 → 廣島機場"] },
+              { time: "10:15", type: "transport", title: "抵達 廣島機場", icon: <MapPin className="w-4 h-4" />, details: [] },
+              { 
+                time: "10:40", 
+                type: "transport", 
+                title: "機場巴士 (往廣島站新幹線口)", 
+                icon: <Bus className="w-4 h-4" />, 
+                cost: "¥1500",
+                location: "廣島機場 2號月台",
+                details: [			
+			"地點：廣島機場巴士 2號月台",
+			"前門上車，每15分一班", 
+			"班次: 10:30, 10:40, 11:05 (50m)"
+		] 
+              },
+              { time: "11:30", type: "transport", title: "抵達 廣島車站新幹線口", icon: <MapPin className="w-4 h-4" />, details: [] },
+              { 
+                time: "11:45", 
+                type: "food", 
+                title: "午餐 & 購物：廣島車站 minamoa", 
+                location: "廣島車站 minamoa",
+                details: [
+                  "🍜 1F 尾道拉麵 (10:00-22:00)",
+                  "🍛 2F SOUP CURRY KING 湯咖哩 (10:00-21:00)",
+                  "🥩 6F 叙々苑 燒肉 (11:00-22:00)",
+                  "🛍️ ekie 2F 寶可夢中心",
+                  "🛍️ minamoa 2F 星巴克 / 4F 3COINS / 5F UNIQLO"
+                ]
+              },
+              { time: "14:40", type: "transport", title: "步行前往飯店", icon: <Navigation className="w-4 h-4" />, details: ["路程約 10 分鐘"] },
+              { time: "15:00", type: "hotel", title: "Check-in 東橫INN", location: "東橫INN 廣島站", details: [] },
+              { time: "15:30", type: "transport", title: "前往和平公園", location: "廣島和平公園",icon: <Bus className="w-4 h-4" />, cost: "¥240", details: ["公車/廣電", "路程約 24 分鐘"] },
+              { 
+                time: "16:00", 
+                type: "spot", 
+                title: "廣島和平紀念資料館 & 公園", 
+                link: "https://www.gltjp.com/zh-hant/article/item/20627/",
+                location: "廣島和平紀念資料館",
+                cost: "成人¥200 / 65歲+ ¥100",
+                hours: "07:30 - 18:00 (16:30 停止售票)",
+                desc: "紀錄了1945年原子彈爆炸的慘痛歷史與遺物。和平紀念公園內包含原爆死沒者慰靈碑。原爆圓頂館(原廣島縣產業獎勵館)是少數在爆炸中心倖存的建築，1996年登錄為世界遺產，象徵人類對和平的渴望。",
+                details: ["12-2月閉館前一小時入場需線上購票"] 
+              },
+              { 
+                time: "17:30", 
+                type: "spot", 
+                title: "原爆圓頂館", 
+                link: "https://www.gltjp.com/zh-hant/article/item/20626/",
+                location: "原爆圓頂館",
+                hours: "點燈: 20:00 - 00:00",
+                desc: "世界文化遺產，保留了原爆當時的殘破景象，作為警惕世人的和平象徵。",
+                details: ["1996年12月，原爆圓頂屋被登錄為世界遺產。"] 
+              },
+              { 
+                time: "18:30", 
+                type: "food", 
+                title: "晚餐 & 購物：本通商店街", 
+                location: "廣島本通商店街",
+                details: [
+                  "🐮 松屋 (24hr)",
+                  "🥞 Nagataya 廣島燒 (11:00-20:30, 排隊店)",
+                  "🥞 廣島燒村4F あとむ (11:00-00:00, 排隊店)",
+                  "🛍️ LOFT, Seria (10:00-19:30)",
+                  "🛍️ 大創, UNIQLO (10:30-20:00)",
+                  "🛍️ PARCO (10:00-20:30)",
+                  "🛍️ 唐吉軻德 (10:00-05:00)"
+                ]
+              },
+              { time: "20:30", type: "transport", title: "回飯店", icon: <Bus className="w-4 h-4" />, cost: "¥240", details: ["公車/廣電", "路程約 13 分鐘"] },
+              { time: "20:50", type: "hotel", title: "休息：東橫INN", location: "東橫INN", details: [] },
+            ]
+          },
+          {
+            day: 2,
+            date: "12/6 (六)",
+            title: "廣島城與吳市巡禮",
+            items: [
+              { time: "08:30", type: "transport", title: "前往廣島城", icon: <Bus className="w-4 h-4" />, cost: "¥240", details: ["步行7分至廣島站→公車至合同廳舍前→步行5分", "總路程約 20 分鐘"] },
+              { 
+                time: "09:00", 
+                type: "spot", 
+                title: "廣島城 (鯉魚城)", 
+                link: "https://tw.japan-travel-note.com/posts/111",
+                location: "廣島城",
+                cost: "天守閣 ¥370 / 65歲+ ¥180",
+                hours: "天守閣 09:00-17:00 / 二之丸 -16:30",
+                desc: "由毛利輝元建於1589年，別稱「鯉城」。雖然原建築在原爆中摧毀，但在1958年重建了天守閣。內部展示武士文化與廣島歷史。",
+                details: [] 
+              },
+              { time: "10:00", type: "spot", title: "廣島護國神社", link: "https://dive-hiroshima.com/tw/explore/1135/", location: "廣島護國神社", hours: "09:00 - 16:30", desc: "位於廣島城跡內，是廣島縣初詣參拜人數最多的神社，祈求和平與繁榮。", details: [] },
+              { time: "10:45", type: "transport", title: "前往廣島車站", icon: <Bus className="w-4 h-4" />, cost: "¥240", details: ["步行25分 或 搭乘觀巴/巴士(約20分)"] },
+              { 
+                time: "11:45", 
+                type: "food", 
+                title: "午餐：炭焼牛たん東山 雅", 
+                location: "廣島車站 炭焼牛たん東山 雅",
+                hours: "11:00 - 22:00",
+                details: ["仙台牛舌專賣店"]
+              },
+              { time: "13:00", type: "transport", title: "JR山陽本線/吳線 (往吳市)", icon: <Train className="w-4 h-4" />, cost: "¥510", details: ["廣島站 → 吳站", "班次: 13:00, 13:10, 13:30", "車程約 33 分鐘"] },
+              { time: "13:45", type: "transport", title: "步行至大和博物館", icon: <Navigation className="w-4 h-4" />, details: ["從吳站2樓往高架橋方向，約7分鐘"] },
+              { 
+                time: "14:00", 
+                type: "spot", 
+                title: "吳市海事歷史科學館 (大和博物館)", 
+                link: "https://journey.tw/yamato-museum/",
+                location: "大和博物館",
+                cost: "¥500",
+                hours: "09:00 - 18:00 (17:30 最後入場)",
+                desc: "鎮館之寶是1/10比例的「大和號」戰艦模型。吳市曾是日本海軍第一大工廠，此館展示了造船科技與海軍歷史。",
+                details: [] 
+              },
+              { 
+                time: "15:00", 
+                type: "spot", 
+                title: "海上自衛隊吳史料館 (鐵鯨館)", 
+                link: "https://www.gltjp.com/zh-hant/directory/item/12506/",
+                location: "海上自衛隊吳史料館",
+                hours: "10:00 - 18:00 (17:30 最後入場)",
+                cost: "免費入場",
+                desc: "日本唯一展示真實退役潛水艇「秋潮號」的博物館，遊客可以實際進入潛水艇內部參觀，體驗海自的生活。",
+                details: [] 
+              },
+              { time: "16:20", type: "transport", title: "吳中央碼頭1樓 報到", location: "吳灣船艦巡禮", details: ["準備參加吳灣船艦巡禮"] },
+              { 
+                time: "16:35", 
+                type: "spot", 
+                title: "吳灣船艦巡禮 (夕陽船班)", 
+                link: "https://journey.tw/kure-naval-vessel-cruising-tour/",
+                location: "吳灣船艦巡禮",
+                cost: "¥1700",
+                desc: "近距離觀賞海上自衛隊的護衛艦、潛水艇等現役船艦。夕陽時分配合軍艦旗降旗儀式（視情況），景色壯觀。",
+                details: ["出發前15分鐘報到", "航程35分鐘", "❌ 禁止撐傘"] 
+              },
+              { 
+                time: "17:30", 
+                type: "food", 
+                title: "晚餐 & 購物：youme Town 吳店", 
+                location: "youme Town Kure",
+                details: [
+                  "🍱 3F 定食屋百菜旬 (11:00-21:00)",
+                  "🛍️ 1-2F Uniqlo, Seria"
+                ]
+              },
+              { time: "20:07", type: "transport", title: "JR吳線 回廣島", icon: <Train className="w-4 h-4" />, details: ["吳站 → 廣島站", "班次: 20:07, 20:32, 21:22", "車程約 50 分鐘"] }
+            ]
+          },
+          {
+            day: 3,
+            date: "12/7 (日)",
+            title: "尾道散策與三原章魚",
+            items: [
+              { time: "08:48", type: "transport", title: "前往尾道", icon: <Train className="w-4 h-4" />, cost: "¥1,520 (普通車)", details: ["A方案(普通車): 廣島→糸崎→尾道 (約1.5-2hr)","班次:8:48、9:50", "B方案(新幹線): 自由席¥2510, 轉乘較快(約1hr)","班次:8:40、9:38"] },
+              { time: "10:30", type: "spot", title: "尾道本通商店街", link: "https://www.gltjp.com/zh-hant/directory/item/11374/", location: "尾道本通商店街", desc: "充滿昭和風情的商店街，有許多老舖與文青小店。", details: [] },
+              
+              { 
+                time: "11:15", 
+                type: "info", 
+                title: "🔔 開放預辦登機", 
+                icon: <Qrcode className="w-4 h-4 text-blue-500" />, 
+                details: ["回程航班 CI113 開放線上報到！", "建議先選位"] 
+              }, 
+		{ 
+                time: "11:30", 
+                type: "food", 
+                title: "午餐：尾道拉麵", 
+                location: "尾道拉麵",
+                details: [
+                  "🍜 尾道拉麵ベッチャー (11:00-21:00)",
+                  "🍜 Maruboshi (10:30-20:00)",
+                  "🍮 小野貓點心鋪布丁 (11:00-18:00)"
+                ]
+              },
+              { 
+                time: "13:30", 
+                type: "transport", 
+                title: "千光寺山纜車", 
+                icon: <Navigation className="w-4 h-4" />, 
+                cost: "單程¥500 / 來回¥700",
+                location: "千光寺山纜車",
+                hours: "09:00 - 17:15 (15分一班)",
+                details: ["建議搭纜車上山，走路下山(約20分)"] 
+              },
+              { 
+                time: "13:30", 
+                type: "spot", 
+                title: "千光寺 & 公園", 
+                link: "https://www.gltjp.com/zh-hant/directory/item/11317/",
+                location: "千光寺",
+                hours: "09:00 - 17:00",
+                desc: "尾道的代表性寺院，從本堂可俯瞰瀨戶內海與尾道水道的絕景。公園內有許多文學碑。",
+                details: ["⚠️ 千光寺無廁所 (公園有)", "附近多墓地(日本文化視為福地)"] 
+              },
+              { 
+                time: "14:30", 
+                type: "spot", 
+                title: "尾道市立美術館", 
+                link: "https://www.gltjp.com/zh-hant/directory/item/16947/",
+                location: "尾道市立美術館",
+                cost: "¥310 / 70歲+ 免費",
+                hours: "09:00 - 17:00",
+                desc: "建築大師安藤忠雄設計改建，結合了古蹟與現代清水模建築。",
+                details: [] 
+              },
+              { time: "16:00", type: "spot", title: "貓之細道", link: "https://www.gltjp.com/zh-hant/directory/item/10501/", location: "貓之細道", desc: "狹窄蜿蜒的坡道，裝飾著許多「福石貓」，是貓奴聖地，沿途有許多特色咖啡廳。", details: ["走路下山"] },
+              { time: "17:03", type: "transport", title: "JR山陽本線 (往三原)", location: "三原車站", icon: <Train className="w-4 h-4" />, cost: "¥240", details: ["尾道 → 糸崎 → 三原", "班次: 17:03, 17:21(15m)"] },
+              { time: "17:20", type: "spot", title: "三原城跡 (浮城)", link: "https://kavana.tw/mihara-castle/", location: "三原城跡", hours: "06:30 - 22:00", desc: "小早川隆景所建，利用瀨戶內海潮汐防禦，滿潮時宛如浮在海上。", details: [] },
+              { 
+                time: "17:45", 
+                type: "food", 
+                title: "晚餐：三原章魚料理", 
+                location: "三原車站周邊",
+                details: [
+                  "🐙 Kodama 章魚天婦羅 (08:00-18:00)",
+                  "🍱 和食処 登喜将 (11:30-21:00)"
+                ]
+              },
+              { time: "19:13", type: "transport", title: "返回廣島", icon: <Train className="w-4 h-4" />, details: ["A: JR山陽本線 ¥1340 (約74分)", "B: 新幹線自由席 ¥2330 (約26分)"] }
+            ]
+          },
+          {
+            day: 4,
+            date: "12/8 (一)",
+            title: "宮島一日遊",
+            items: [
+              { time: "08:21", type: "transport", title: "JR山陽本線 (往宮島口)", icon: <Train className="w-4 h-4" />, cost: "¥420", details: ["廣島 → 宮島口 岩国行", "班次: 08:21, 08:35, 08:54", "車程 42 分"] },
+              { 
+                time: "09:10", 
+                type: "transport", 
+                title: "JR西日本宮島渡輪", 
+                icon: <Ship className="w-4 h-4" />, 
+                cost: "來回¥400 + 稅¥100",
+                location: "宮島口渡輪乘船處",
+                details: ["09:10-16:10 船班會繞行靠近大鳥居","船程:10分", "班次: 每15分一班 (10, 25, 40, 55)"] 
+              },
+              { time: "09:20", type: "spot", title: "宮島 (日本三景)", link: "https://www.japan.travel/hk/destinations/chugoku/hiroshima/miyajima/", location: "宮島", desc: "人與神共存的島嶼，隨處可見野生的鹿（請勿餵食）。", details: [] },
+              { time: "09:26", type: "spot", title: "宮島郵局", location: "宮島郵局", hours: "09:00 - 17:00", details: ["寄明信片 (郵資¥100)"] },
+              { time: "09:30", type: "food", title: "表參道商店街 (點心)", location: "宮島表参道商店街", details: ["烤牡蠣、炸紅葉饅頭、穴子魚", "巨大宮島飯杓展示"] },
+              { time: "09:45", type: "spot", title: "嚴島神社 大鳥居", link: "https://www.newamazing.com.tw/eweb_newamazing/japan/shikoku/itsukushima-shinto-shrine.asp", location: "嚴島神社大鳥居", desc: "海上的朱紅色大鳥居，是宮島的地標。退潮時可以走下去近距離觀賞。", details: ["確認當日潮汐時間"] },
+              { time: "10:00", type: "spot", title: "紅葉谷公園", link: "https://www.gltjp.com/zh-hant/directory/item/14665/", location: "紅葉谷公園", desc: "位於彌山山腳，種植約700株紅葉，景色優美。", details: [] },
+              { 
+                time: "10:30", 
+                type: "spot", 
+                title: "宮島纜車 & 彌山(世界自然遺產)", 
+                link: "https://journey.tw/miyajima-ropeway/",
+                location: "宮島纜車紅葉谷站", 
+                cost: "來回¥2000、 65以上¥1800",
+                hours: "09:00 - 16:00",
+                desc: "世界自然遺產。搭纜車至獅子岩展望台，可眺望瀨戶內海群島美景。",
+                details: ["獅子岩展望台", "彌山攻頂需再爬行(來回1-2hr)，視體力決定"] 
+              },
+              { 
+                time: "12:30", 
+                type: "food", 
+                title: "午餐：宮島美食", 
+                location: "宮島表参道商店街",
+                details: [
+                  "🦪 牡蠣屋 (10:00-18:00)",
+                  "🦪 焼がきのはやし (10:30-16:30)",
+                  "🍱 岩むら 烤星鰻飯 (11:00-14:35)",
+                  "🍁 紅葉堂 炸紅葉饅頭 (09:00-17:30)",
+                  "☕ 伊都岐咖啡 (09:00-18:00)"
+                ]
+              },
+              { 
+                time: "14:00", 
+                type: "spot", 
+                title: "豐國神社 (千疊閣) & 五重塔", 
+                link: "https://www.fun-japan.jp/tw/articles/9418",
+                location: "豐國神社(千疊閣)",
+                cost: "¥100",
+                desc: "豐臣秀吉下令建造的大經堂，未完工便過世，呈現獨特的開放式結構。五重塔色彩鮮豔，融合和樣與唐樣風格。",
+                details: [] 
+              },
+              { 
+                time: "14:30", 
+                type: "spot", 
+                title: "嚴島神社(世界文化遺產)", 
+                link: "https://dive-hiroshima.com/tw/feature/world_heritage-about_itsukushima/",
+                location: "嚴島神社",
+                cost: "¥300",
+                hours: "06:30 - 17:00",
+                desc: "世界文化遺產，建於海上的寢殿造建築。迴廊隨潮水漲退展現不同風貌。",
+                details: [] 
+              },
+              { time: "14:30", type: "spot", title: "大聖院", link: "https://www.gltjp.com/zh-hant/directory/item/14734/", location: "宮島大聖院", hours: "08:00 - 17:00", desc: "宮島歷史最悠久的寺院，境內有許多可愛的小地藏與遍照窟。", details: ["視時間選逛"] },
+              { time: "17:55", type: "transport", title: "渡輪返程", icon: <Ship className="w-4 h-4" />, details: ["宮島 → 宮島口", "JR班次: 10, 25, 40, 55","松大班次: 00, 15, 30, 45"] },
+              { time: "19:03", type: "transport", title: "JR山陽本線 回廣島", icon: <Train className="w-4 h-4" />, cost: "¥420", details: ["宮島口 → 廣島","車程: 15分", "班次: 18:47, 19:03, 19:18"] }
+            ]
+          },
+          {
+            day: 5,
+            date: "12/9 (二)",
+            title: "返程",
+            items: [
+              { time: "06:15", type: "hotel", title: "Check-out 東橫INN", details: [] },
+              { 
+                time: "07:00", 
+                type: "transport", 
+                title: "機場巴士 (往機場)", 
+                icon: <Bus className="w-4 h-4" />, 
+                location: "廣島站北口 5號月台",
+                details: ["班次: 06:45, 07:00, 07:15 (每15分一班)","位置: JR廣島站北口5號月台", "車程約 50 分鐘"] 
+              },
+              { time: "07:50", type: "transport", title: "抵達 廣島機場", icon: <MapPin className="w-4 h-4" />, details: [] },
+              { time: "11:15", type: "transport", title: "華航 CI113 起飛", icon: <Plane className="w-4 h-4" />, details: ["廣島機場 → 桃園機場 T2"] },
+              { time: "13:10", type: "transport", title: "抵達 桃園機場 T2", icon: <MapPin className="w-4 h-4" />, details: ["平安回家"] }
+            ]
+          }
+        ];
+        
+        // --- 準備清單數據 ---
+        const prepChecklist = [
+            "護照",
+            "Visit Japan Web (填寫完成)",
+            "日幣 (現金)",
+            "信用卡",
+            "交通卡 (如 ICOCA)",
+            "網路 (eSIM/Sim卡/Wifi機)",
+            "充電器(注意接頭)",
+            "充電線(注意接頭)",
+            "手錶充電線",
+            "行動電源",
+            "暖暖包",
+            "個人藥品",
+            "蓋章本",
+            "保暖衣物、褲子",
+            "襪子",
+            "毛帽",
+            "口罩",
+            "水壺",
+            "雨傘",
+            "夾鏈袋",
+            "手機墊片",
+            "自拍棒"
+        ];
+        
+        // --- 交通資訊查詢列表 (更新連結) ---
+        const transportLinks = [
+            { 
+                name: "機場巴士", 
+                icon: <Bus size={20} className="text-blue-500"/>, 
+                query: "廣島機場 巴士 時刻表",
+                link: "https://www.hij.airport.jp/access/timetable/2.html"
+            },
+            { 
+                name: "廣島電鐵", 
+                icon: <Train size={20} className="text-blue-500"/>, 
+                query: "廣島電鐵 路面電車 時刻表",
+                link: "https://www.hiroden.co.jp/train/index.html"
+            },
+            { 
+                name: "JR西日本宮島渡輪", 
+                icon: <Ship size={20} className="text-blue-500"/>, 
+                query: "JR西日本宮島渡輪 時刻表",
+                link: "https://jr-miyajimaferry.co.jp/timetable/"
+            },
+            { 
+                name: "宮島松大汽船", 
+                icon: <Ship size={20} className="text-blue-500"/>, 
+                query: "宮島松大汽船 時刻表",
+                link: "https://miyajima-matsudai.co.jp/schedule.html"
+            },
+            { 
+                name: "JR 西日本", 
+                icon: <Train size={20} className="text-blue-500"/>, 
+                query: "JR 西日本 路線 時刻表",
+                link: "https://www.jr-odekake.net/?_gl=1*k6na6m*_ga*NTIwNjU5OTEwLjE3NjQzNzg1MDI.*_ga_1EX2KJB2NH*czE3NjQ0MTMyODAkbzUkZzEkdDE3NjQ0MjEzMjgkajYwJGwwJGgw"
+            }
+        ];
+
+
+        // --- 元件 Components ---
+
+        const IntroModal = ({ spot, onClose }) => {
+          if (!spot) return null;
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all scale-100 max-h-[90vh] flex flex-col">
+                <div className="bg-blue-50 p-4 flex justify-between items-center text-blue-800 shrink-0 border-b border-blue-100"> 
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <BookOpen size={20} />
+                    景點故事
+                  </h3>
+                  <button onClick={onClose} className="p-1 hover:bg-blue-100 rounded-full transition"><X size={24} /></button>
+                </div>
+                <div className="p-6 overflow-y-auto">
+                  <h2 className="text-xl font-bold mb-3 text-gray-800">{spot.title}</h2>
+                  <p className="text-gray-600 leading-relaxed text-justify mb-4">
+                    {spot.desc || "暫無詳細介紹，請親自探索！"}
+                  </p>
+                  <a 
+                    href={spot.link || `https://www.google.com/search?q=${encodeURIComponent(spot.title)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-md"
+                  >
+                    <ExternalLink size={18} />
+                    閱讀更多
+                  </a>
+
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const ItineraryCard = ({ item, onShowIntro }) => {
+          // 根據類型決定卡片樣式
+          const isTransport = item.type === "transport";
+          const isFood = item.type === "food";
+          const isSpot = item.type === "spot";
+          const isHotel = item.type === "hotel";
+          const isInfo = item.type === "info";
+
+          let cardBg = "bg-white border-l-4 border-gray-300"; // Default
+          if (isTransport) cardBg = "bg-slate-50 border-l-4 border-blue-400";
+          if (isSpot) cardBg = "bg-white border-l-4 border-amber-500";
+          if (isFood) cardBg = "bg-orange-50 border-l-4 border-orange-400";
+          if (isHotel) cardBg = "bg-indigo-50 border-l-4 border-indigo-500";
+          if (isInfo) cardBg = "bg-blue-50 border-l-4 border-blue-500";
+
+          const showMapButton = item.location || item.title;
+          const showIntroButton = isSpot || (item.desc && item.desc.length > 0);
+
+          return (
+            <div className={`relative rounded-xl shadow-sm p-4 mb-4 ${cardBg} transition-transform active:scale-[0.99]`}>
+              <div className="flex justify-between items-start mb-2">
+                <div className={`text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm ${isInfo ? 'bg-blue-600' : 'bg-gray-800'}`}>
+                  <Clock size={12} />
+                  {item.time}
+                </div>
+                <div className="text-gray-400">
+                  {isTransport && item.icon}
+                  {isSpot && <MapPin className="w-4 h-4 text-amber-500" />}
+                  {isFood && (item.title.includes("購物") ? <ShoppingBag className="w-4 h-4 text-orange-500" /> : <Utensils className="w-4 h-4 text-orange-500" />)}
+                  {isHotel && <Briefcase className="w-4 h-4 text-indigo-500" />}
+                  {isInfo && item.icon}
+                </div>
+              </div>
+              <div className="ml-1">
+                <h3 className="text-lg font-bold text-gray-800 mb-1 leading-snug">{item.title}</h3>
+                <div className="flex flex-wrap gap-2 text-sm mb-2">
+                  {item.cost && (
+                    <span className="inline-flex items-center text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded text-xs">
+                      💰 {item.cost}
+                    </span>
+                  )}
+                  {item.hours && (
+                    <span className="inline-flex items-center text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded text-xs">
+                      🕑 {item.hours}
+                    </span>
+                  )}
+                </div>
+                {item.details && item.details.length > 0 && (
+                  <ul className="space-y-1 text-sm text-gray-600 mb-3 pl-1">
+                    {item.details.map((detail, idx) => (
+                      <li key={idx} className="flex items-start gap-1.5 leading-relaxed">
+                        <span className="block w-1 h-1 mt-2 rounded-full bg-gray-400 shrink-0"></span>
+                        <span>{detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className={`flex gap-2 mt-3 ${!(showMapButton || showIntroButton) ? 'hidden' : ''}`}>
+                  {showMapButton && (
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location || item.title)}`}
+                      target="_blank" 
+                      rel="noreferrer"
+                      className={`flex-1 flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-xs font-bold transition ${!showIntroButton ? 'w-full' : ''}`}
+                    >
+                      <Navigation size={14} /> 地圖
+                    </a>
+                  )}
+                  {showIntroButton && (
+                    <button 
+                      onClick={() => onShowIntro(item)}
+                      className={`flex-1 flex items-center justify-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-lg text-xs font-bold transition ${!showMapButton ? 'w-full' : ''}`}
+                    >
+                      <BookOpen size={14} /> 介紹
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const FlightDetail = ({ type, timeStart, locStart, timeEnd, locEnd, duration, flightNum }) => (
+            <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                    <span className="font-bold">{type}</span>
+                    <span className="font-semibold text-gray-700">{flightNum}</span>
+                </div>
+                <div className="flex justify-between items-center relative">
+                    <div className="text-left">
+                        <div className="text-3xl font-extrabold text-gray-900">{timeStart}</div>
+                        <div className="text-sm text-gray-500 mt-1 whitespace-nowrap">{locStart}</div>
+                    </div>
+                    <div className="relative flex-1 h-px bg-gray-300 mx-3 sm:mx-4">
+                        <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-2 py-0.5 text-xs text-gray-500 rounded-full border border-gray-100 shadow-sm whitespace-nowrap">
+                            {duration}
+                        </span>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-3xl font-extrabold text-gray-900">{timeEnd}</div>
+                        <div className="text-sm text-gray-500 mt-1 whitespace-nowrap">{locEnd}</div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ItineraryView = ({ activeDay, setActiveDay, onShowIntro }) => {
+          const currentDayData = tripData.find(d => d.day === activeDay);
+          return (
+            <div className="bg-gray-50">
+              <div className="sticky top-0 z-40 bg-white shadow-md">
+                <div className="flex w-full">
+                  {[1, 2, 3, 4, 5].map((day) => (
+                    <button
+                      key={day}
+                      onClick={() => setActiveDay(day)}
+                      className={`flex-1 py-3 text-sm font-bold border-b-4 transition-colors relative
+                        ${activeDay === day 
+                          ? 'border-blue-500 text-blue-600 bg-blue-50' 
+                          : 'border-transparent text-gray-400 hover:bg-gray-50'
+                        }`}
+                    >
+                      D{day}
+                      <span className="block text-[10px] font-normal mt-0.5">
+                        12/{4 + day}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="mb-4 text-center">
+                  <h2 className="text-xl font-bold text-gray-800">{currentDayData.title}</h2>
+                  <p className="text-sm text-gray-500">{currentDayData.date}</p>
+                </div>
+                {currentDayData.items.map((item, index) => (
+                  <ItineraryCard key={index} item={item} onShowIntro={onShowIntro} />
+                ))}
+                <div className="text-center text-gray-300 text-sm mt-8 mb-4">
+                  — Day {activeDay} End —
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const InfoView = () => (
+          <div className="p-4 bg-gray-50">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-base font-bold tracking-wider">FLIGHT</span>
+                <span className="text-gray-800">航班資訊</span>
+            </h2>
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow-lg p-5">
+                <FlightDetail
+                    type="去程 12/5 (五)"
+                    flightNum="華航 CI 112"
+                    timeStart="07:00"
+                    locStart="TPE (桃機 T2)"
+                    timeEnd="10:15"
+                    locEnd="HIJ (廣島)"
+                    duration="2h 15m"
+                />
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-5">
+                <FlightDetail
+                    type="回程 12/9 (二)"
+                    flightNum="華航 CI 113"
+                    timeStart="11:15"
+                    locStart="HIJ (廣島)"
+                    timeEnd="13:10"
+                    locEnd="TPE (桃機 T2)"
+                    duration="2h 55m"
+                />
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                    <div className="p-3 bg-blue-50 border-l-4 border-blue-400 rounded-lg text-sm text-blue-800">
+                        <p className="font-bold flex items-center gap-1"><Qrcode size={16} /> 線上報到提醒：</p>
+                        <p>回程航班 CI113 (12/9) 預計於 12/7 11:15 開放線上報到 (48小時前)。</p>
+                    </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-indigo-500">
+                <h3 className="font-bold text-lg mb-3 flex items-center gap-2"><Briefcase size={18}/> 住宿：東橫INN</h3>
+                <p className="text-gray-600 mb-4 text-sm">廣島站新幹線口，交通便利。</p>
+                <a 
+                  href="https://www.google.com/maps/search/?api=1&query=東橫INN廣島站" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="block w-full text-center bg-indigo-100 text-indigo-700 py-3 rounded-lg font-bold hover:bg-indigo-200 transition"
+                >
+                  查看飯店地圖
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+
+        const PrepView = () => (
+          <div className="p-4 bg-gray-50">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <span className="text-green-500"><Calendar size={24}/></span> 行前準備
+            </h2>
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">🧳 華航行李限制</h3>
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold mt-0.5">托運</span>
+                    23公斤/件。長+寬+高 ≤ 158cm。
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold mt-0.5">隨身</span>
+                    7公斤。56x36x23cm。
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-bold mt-0.5">液體</span>
+                    每樣100ml內，需裝入1公升透明夾鏈袋。
+                  </li>
+                </ul>
+                <a 
+                  href="https://www.china-airlines.com/tw/zh/fly/prepare-for-the-fly/baggage/dangerous-goods-information" 
+                  target="_blank"
+                  rel="noreferrer" 
+                  className="mt-4 flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 border border-red-200 py-3 rounded-lg font-bold hover:bg-red-100 transition"
+                >
+                  <span className="mr-1"><Info size={16}/></span> 危險品須知 (行動電源等)
+                </a>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <h3 className="font-bold text-lg mb-3 text-gray-800">✅ 檢查清單</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700">
+                    {prepChecklist.map((item, index) => (
+                        <label key={index} className="flex items-center gap-2">
+                            <input type="checkbox" className="w-4 h-4 rounded text-blue-500 focus:ring-blue-500 border-gray-300"/> 
+                            {item}
+                        </label>
+                    ))}
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <h3 className="font-bold text-lg mb-3 text-gray-800">🆘 緊急聯絡</h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>旅外國人急難救助專線：<br/><span className="font-mono text-lg text-black">0800-085-095</span></p>
+                  <p>日本報警：110 / 救護車：119</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+        const TransportView = () => (
+          <div className="p-4 bg-gray-50">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <span className="text-blue-600"><Train size={24}/></span> 交通資訊
+            </h2>
+            <div className="space-y-4">
+              <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-400">
+                <h3 className="text-xl font-bold mb-4 text-gray-800">🌐 時刻表查詢</h3>
+                <div className="space-y-3">
+                  {transportLinks.map((item, index) => (
+                    <a 
+                        key={index}
+                        href={item.link}
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition"
+                    >
+                        <div className="flex items-center gap-3">
+                            {item.icon}
+                            <span className="font-medium text-gray-800">{item.name}</span>
+                        </div>
+                        <ExternalLink size={16} className="text-gray-500" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 pt-2 pb-1">交通工具概覽</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm text-center">
+                  <div className="text-2xl mb-1">🚌</div>
+                  <div className="font-bold text-gray-700">廣島巴士</div>
+                  <div className="text-xs text-gray-400 mt-1">市區移動主力</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm text-center">
+                  <div className="text-2xl mb-1">🚃</div>
+                  <div className="font-bold text-gray-700">廣島電鐵</div>
+                  <div className="text-xs text-gray-400 mt-1">路面電車體驗</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm text-center">
+                  <div className="text-2xl mb-1">⛴️</div>
+                  <div className="font-bold text-gray-700">宮島渡輪</div>
+                  <div className="text-xs text-gray-400 mt-1">JR/松大汽船</div>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm text-center">
+                  <div className="text-2xl mb-1">🚆</div>
+                  <div className="font-bold text-gray-700">新幹線</div>
+                  <div className="text-xs text-gray-400 mt-1">快速移動</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+        const GuideView = () => (
+          <div className="p-4 bg-gray-50">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <span className="text-amber-500"><BookOpen size={24}/></span> 旅遊指南
+            </h2>
+            <div className="space-y-6">
+              {/* 更新：美食特產與伴手禮 (分類顯示) */}
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2 border-b pb-2">🎁 美食特產 & 伴手禮</h3>
+                
+                {/* 廣島 & 宮島 */}
+                <div className="mb-5">
+                    <h4 className="text-base font-bold text-gray-700 mb-2 flex items-center gap-1">
+                        <span className="text-red-500">⛩️</span> 廣島市 / 宮島
+                    </h4>
+                    <ul className="space-y-3">
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🦪</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">廣島牡蠣</span>
+                                <span className="text-xs text-gray-500">產量日本第一！必吃烤牡蠣、炸牡蠣。伴手禮推薦牡蠣醬油海苔、油漬牡蠣罐頭。</span>
+                            </div>
+                        </li>
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍱</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">穴子魚 (星鰻)</span>
+                                <span className="text-xs text-gray-500">宮島表參道名物，口感比一般鰻魚更鬆軟綿密，推薦必吃「穴子魚飯」。</span>
+                            </div>
+                        </li>
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍁</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">紅葉饅頭</span>
+                                <span className="text-xs text-gray-500">經典伴手禮。除了傳統紅豆餡，還有起司、巧克力口味。現炸的「炸紅葉饅頭」更是美味！</span>
+                            </div>
+                        </li>
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍋</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">瀨戶內檸檬</span>
+                                <span className="text-xs text-gray-500">廣島檸檬產量豐富。推薦檸檬塔、檸檬蛋糕，以及超涮嘴的「花枝天婦羅(瀨戶內檸檬味)」。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* 尾道 & 三原 */}
+                <div className="mb-5">
+                    <h4 className="text-base font-bold text-gray-700 mb-2 flex items-center gap-1">
+                        <span className="text-blue-500">🌊</span> 尾道 / 三原
+                    </h4>
+                    <ul className="space-y-3">
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍜</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">尾道拉麵</span>
+                                <span className="text-xs text-gray-500">醬油基底加上豬背脂的濃郁湯頭。當地超市或名店都有販售料理包。</span>
+                            </div>
+                        </li>
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🐙</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">三原章魚</span>
+                                <span className="text-xs text-gray-500">三原是章魚之都，因瀨戶內海急流造就緊實肉質。章魚天婦羅、章魚飯必試！</span>
+                            </div>
+                        </li>
+                         <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍊</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">八朔橘大福</span>
+                                <span className="text-xs text-gray-500">因島發祥的八朔橘，酸甜果肉包進大福裡，清爽多汁。(季節限定)</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* 吳市 */}
+                <div>
+                    <h4 className="text-base font-bold text-gray-700 mb-2 flex items-center gap-1">
+                        <span className="text-slate-600">⚓</span> 吳市
+                    </h4>
+                    <ul className="space-y-3">
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍛</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">吳海自咖哩</span>
+                                <span className="text-xs text-gray-500">源自海上自衛隊各艦艇的獨家食譜，市內餐廳提供不同口味，也有販售調理包。</span>
+                            </div>
+                        </li>
+                        <li className="flex gap-3 items-start p-2 bg-gray-50 rounded-lg">
+                            <span className="text-2xl shrink-0">🍥</span>
+                            <div>
+                                <span className="font-bold block text-gray-800">Gansu (炸魚肉火腿)</span>
+                                <span className="text-xs text-gray-500">吳市的靈魂美食！魚漿裹粉油炸，帶點微辣，適合當下酒菜或零嘴。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <h3 className="font-bold text-lg mb-3 flex items-center gap-2">🧥 衣著建議 (12月)</h3>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                  廣島12月平均氣溫約 5°C - 12°C。
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="text-2xl mb-1">🧣</div>
+                    <div className="text-sm font-bold text-gray-700">圍巾/手套</div>
+                    <div className="text-xs text-gray-500">早晚溫差大</div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="text-2xl mb-1">👟</div>
+                    <div className="text-sm font-bold text-gray-700">好走的鞋</div>
+                    <div className="text-xs text-gray-500">尾道/宮島需步行</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+        const App = () => {
+          const [activeTab, setActiveTab] = useState('itinerary');
+          const [activeDay, setActiveDay] = useState(1);
+          const [showIntro, setShowIntro] = useState(null);
+
+          React.useEffect(() => {
+            const container = document.getElementById('main-content-scroll');
+            if (container) {
+              container.scrollTo({ top: 0, behavior: 'instant' });
+            }
+          }, [activeTab, activeDay]);
+
+          return (
+            <div className="h-full w-full flex justify-center font-sans bg-gray-100">
+              <div className="w-full max-w-md bg-white h-full relative shadow-2xl flex flex-col overflow-hidden">
+                <div id="main-content-scroll" className="flex-1 no-scrollbar relative overflow-y-auto">
+                  {activeTab === 'itinerary' && (
+                    <ItineraryView 
+                      activeDay={activeDay} 
+                      setActiveDay={setActiveDay} 
+                      onShowIntro={setShowIntro}
+                    />
+                  )}
+                  {activeTab === 'info' && <InfoView />}
+                  {activeTab === 'prep' && <PrepView />}
+                  {activeTab === 'transport' && <TransportView />}
+                  {activeTab === 'guide' && <GuideView />}
+                  <div 
+                    style={{ height: 'calc(8rem + env(safe-area-inset-bottom))' }} 
+                    className="w-full shrink-0"
+                  ></div>
+                </div>
+                <div 
+                  style={{ height: 'calc(4rem + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}
+                  className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t flex justify-around items-center px-1 z-50 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
+                >
+                  <button 
+                    onClick={() => setActiveTab('itinerary')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition w-1/5 ${activeTab === 'itinerary' ? 'text-blue-600' : 'text-gray-400'}`}
+                  >
+                    <Calendar size={20} />
+                    <span className="text-[10px] font-bold">行程</span>
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('info')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition w-1/5 ${activeTab === 'info' ? 'text-blue-600' : 'text-gray-400'}`}
+                  >
+                    <Info size={20} />
+                    <span className="text-[10px] font-bold">資訊</span>
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('prep')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition w-1/5 ${activeTab === 'prep' ? 'text-blue-600' : 'text-gray-400'}`}
+                  >
+                    <Briefcase size={20} />
+                    <span className="text-[10px] font-bold">準備</span>
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('transport')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition w-1/5 ${activeTab === 'transport' ? 'text-blue-600' : 'text-gray-400'}`}
+                  >
+                    <Train size={20} />
+                    <span className="text-[10px] font-bold">交通</span>
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('guide')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition w-1/5 ${activeTab === 'guide' ? 'text-blue-600' : 'text-gray-400'}`}
+                  >
+                    <BookOpen size={20} />
+                    <span className="text-[10px] font-bold">指南</span>
+                  </button>
+                </div>
+                {showIntro && (
+                  <IntroModal spot={showIntro} onClose={() => setShowIntro(null)} />
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
